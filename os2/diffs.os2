@@ -1,0 +1,2610 @@
+diff -rwuPB ..\nvi-1.79-dist/build/config.guess ./build/config.guess
+--- ..\nvi-1.79-dist/build/config.guess	Sun Aug 18 10:36:34 1996
++++ ./build/config.guess	Fri Jun 20 18:21:20 1997
+@@ -430,6 +430,9 @@
+     mc68*:A/UX:*:*)
+ 	echo m68k-apple-aux${UNAME_RELEASE}
+ 	exit 0 ;;
++    i?86:OS/2:2:2.[34]?)
++        echo i386-ibm-os2
++        exit 0 ;;
+ esac
+ 
+ #echo '(No uname command or uname output not recognized.)' 1>&2
+diff -rwuPB ..\nvi-1.79-dist/build/config.sub ./build/config.sub
+--- ..\nvi-1.79-dist/build/config.sub	Sun May 19 10:02:20 1996
++++ ./build/config.sub	Sat May 31 21:24:38 1997
+@@ -703,6 +703,9 @@
+ 		;;
+ 	-none)
+ 		;;
++    -warp | -merlin | -os2*)
++        os=-os2
++        ;;
+ 	*)
+ 		# Get rid of the `-' at the beginning of $os.
+ 		os=`echo $os | sed 's/[^-]*-//'`
+diff -rwuPB ..\nvi-1.79-dist/build/configure ./build/configure
+--- ..\nvi-1.79-dist/build/configure	Wed Oct 23 08:53:06 1996
++++ ./build/configure	Sun Jun 29 15:49:12 1997
+@@ -515,8 +515,8 @@
+ $CPP $CPPFLAGS'
+ ac_compile='echo ${CC-cc} -c $CFLAGS $CPPFLAGS conftest.$ac_ext 1>&5;
+ ${CC-cc} -c $CFLAGS $CPPFLAGS conftest.$ac_ext 1>&5 2>&5'
+-ac_link='echo ${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5;
+-${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5 2>&5'
++ac_link='echo ${CC-cc} -o conftest$EXE $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5;
++${CC-cc} -o conftest$EXE $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5 2>&5'
+ 
+ if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+   # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+@@ -552,6 +552,19 @@
+ ac_config_sub=$ac_aux_dir/config.sub
+ ac_configure=$ac_aux_dir/configure # This should be Cygnus configure.
+ 
++# Aside on compatibility:  it would be nice if this came *after* the system
++# type check, so I could have EXE, CMD, and PATHSEP set right to begin with.
++# (half-hearted check, fixed later...)
++if test -d 'C:\\'; then
++    EXE=.exe
++    CMD=.cmd
++    PATHSEP=;
++else
++    EXE=
++    CMD=
++    PATHSEP=:
++fi
++
+ # Find a good install program.  We prefer a C program (faster),
+ # so one script is as good as another.  But avoid the broken or
+ # incompatible versions:
+@@ -567,7 +580,7 @@
+ if eval "test \"`echo '$''{'ac_cv_path_install'+set}'`\" = set"; then
+   echo $ac_n "(cached) $ac_c" 1>&6
+ else
+-    IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
++    IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}${PATHSEP}"
+   for ac_dir in $PATH; do
+     # Account for people who put trailing slashes in PATH elements.
+     case "$ac_dir/" in
+@@ -575,7 +588,7 @@
+     *)
+       # OSF1 and SCO ODT 3.0 have their own names for install.
+       for ac_prog in ginstall installbsd scoinst install; do
+-        if test -f $ac_dir/$ac_prog; then
++        if test -f $ac_dir/$ac_prog$EXE; then
+ 	  if test $ac_prog = install &&
+             grep dspmsg $ac_dir/$ac_prog >/dev/null 2>&1; then
+ 	    # AIX install.  It has an incompatible calling convention.
+@@ -678,6 +691,12 @@
+ 
+ 
+ 
++EXE=
++CMD=
++PATHSEP=:
++vi_cv_DOSish=0
++emxadds=
++emxfix=:
+ case "$host_os" in
+ aix3.2.5)  OPTFLAG=${OPTFLAG-"-O"};;
+ aix4.1*)   CFLAGS=${CFLAGS-"-qstrict"}
+@@ -688,6 +707,15 @@
+ bsd4.4)    OPTFLAG=${OPTFLAG-"-O2"};;
+ bsdi*)	   CC=${CC-"shlicc"}
+ 	   OPTFLAG=${OPTFLAG-"-O2"};;
++dos*|os2*|win*)
++	   vi_cv_DOSish=1
++	   emxadds="-DEMX_MOUSE -DEMX_KEYS -DEMX_TITLEBAR -DEMX_CURSOR"
++	   EXE=".exe"
++	   CMD=".cmd"
++	   OPTFLAG=${OPTFLAG-"-O2 -Zmt"}
++	   LDFLAGS=${LDFLAGS-"-Zmt"}
++	   emxfix=${EMX_FIX_CMD-"emxbind -a \$@ -h60"}
++	   PATHSEP=";";;
+ irix6*)	   OPTFLAG=${OPTFLAG-"-O2"};;
+ irix*)	   OPTFLAG=${OPTFLAG-"-O2"};;
+ lynxos*)   # Extract the first word of "gcc", so it can be a program name with args.
+@@ -699,10 +727,10 @@
+   if test -n "$CC"; then
+   ac_cv_prog_CC="$CC" # Let the user override the test.
+ else
+-  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
++  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS};"
+   for ac_dir in $PATH; do
+     test -z "$ac_dir" && ac_dir=.
+-    if test -f $ac_dir/$ac_word; then
++    if test -f $ac_dir/$ac_word$EXE; then
+       ac_cv_prog_CC="gcc"
+       break
+     fi
+@@ -807,6 +835,7 @@
+ solaris*)  LIBS=${LIBS-"-lsocket -lnsl -ldl"}
+ 	   RLIBS=yes;;
+ wgs*)	   LIBS=${LIBS-"-lnsl"};;
++os2)       LIBS=${LIBS-"-lsocket -lbsd -lsettitle"};;
+ esac
+ 
+ case "$host_os" in
+@@ -840,7 +869,7 @@
+ main(){return(0);}
+ EOF
+ eval $ac_link
+-if test -s conftest && (./conftest; exit) 2>/dev/null; then
++if test -s conftest$EXE && (./conftest; exit) 2>/dev/null; then
+   ac_cv_c_cross=no
+ else
+   ac_cv_c_cross=yes
+@@ -860,8 +889,8 @@
+ $CPP $CPPFLAGS'
+ ac_compile='echo ${CC-cc} -c $CFLAGS $CPPFLAGS conftest.$ac_ext 1>&5;
+ ${CC-cc} -c $CFLAGS $CPPFLAGS conftest.$ac_ext 1>&5 2>&5'
+-ac_link='echo ${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5;
+-${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5 2>&5'
++ac_link='echo ${CC-cc} -o conftest$EXE $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5;
++${CC-cc} -o conftest$EXE $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5 2>&5'
+ 
+   if test "$cross_compiling" = yes; then
+                cat > conftest.$ac_ext <<EOF
+@@ -889,7 +918,7 @@
+ main() { exit(0); }
+ EOF
+ eval $ac_link
+-if test -s conftest && (./conftest; exit) 2>/dev/null; then
++if test -s conftest$EXE && (./conftest; exit) 2>/dev/null; then
+   am_cv_prog_cc_works=yes
+ else
+   am_cv_prog_cc_works=no
+@@ -917,10 +946,10 @@
+   ac_cv_path_vi_cv_path_shell="$vi_cv_path_shell" # Let the user override the test with a path.
+   ;;
+   *)
+-  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
++  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}${PATHSEP}"
+   for ac_dir in $PATH; do
+     test -z "$ac_dir" && ac_dir=.
+-    if test -f $ac_dir/$ac_word; then
++    if test -f $ac_dir/$ac_word$EXE; then
+       ac_cv_path_vi_cv_path_shell="$ac_dir/$ac_word"
+       break
+     fi
+@@ -953,10 +982,10 @@
+   ac_cv_path_vi_cv_path_sendmail="$vi_cv_path_sendmail" # Let the user override the test with a path.
+   ;;
+   *)
+-  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
++  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}${PATHSEP}"
+   for ac_dir in $PATH; do
+     test -z "$ac_dir" && ac_dir=.
+-    if test -f $ac_dir/$ac_word; then
++    if test -f $ac_dir/$ac_word$EXE; then
+       ac_cv_path_vi_cv_path_sendmail="$ac_dir/$ac_word"
+       break
+     fi
+@@ -992,10 +1021,10 @@
+   ac_cv_path_vi_cv_path_perl="$vi_cv_path_perl" # Let the user override the test with a path.
+   ;;
+   *)
+-  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
++  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}${PATHSEP}"
+   for ac_dir in $PATH; do
+     test -z "$ac_dir" && ac_dir=.
+-    if test -f $ac_dir/$ac_word; then
++    if test -f $ac_dir/$ac_word$EXE; then
+       ac_cv_path_vi_cv_path_perl="$ac_dir/$ac_word"
+       break
+     fi
+@@ -1021,7 +1050,11 @@
+ if eval "test \"`echo '$''{'vi_cv_path_preserve'+set}'`\" = set"; then
+   echo $ac_n "(cached) $ac_c" 1>&6
+ else
+-  	dirlist="/var/preserve /var/tmp /usr/tmp"
++	if test "$vi_cv_DOSish" = 1; then
++		dirlist="$prefix/preserve C:/preserve C:/temp C:/tmp C:/"
++	else
++		dirlist="/var/preserve /var/tmp /usr/tmp /tmp"
++	fi
+ 	vi_cv_path_preserve=no
+ 	for i in $dirlist; do
+ 		if test -d $i/vi.recover; then
+@@ -1031,8 +1064,20 @@
+ 	done
+ 	if test "$vi_cv_path_preserve" = no; then
+ 		for i in $dirlist; do
++			if test -d $i/recover.vi; then
++				vi_cv_path_preserve=$i/recover.vi
++				break;
++			fi
++		done
++	fi
++	if test "$vi_cv_path_preserve" = no; then
++		for i in $dirlist; do
+ 			if test -d $i -a -w $i; then
++				if [ $vi_cv_DOSish = 1 ]; then
++					vi_cv_path_preserve=$i/recover.vi
++    				else
+ 				vi_cv_path_preserve=$i/vi.recover
++				fi
+ 				break;
+ 			fi
+ 		done
+@@ -1057,10 +1103,10 @@
+   ac_cv_path_vi_cv_path_chmod="$vi_cv_path_chmod" # Let the user override the test with a path.
+   ;;
+   *)
+-  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
++  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}${PATHSEP}"
+   for ac_dir in $PATH; do
+     test -z "$ac_dir" && ac_dir=.
+-    if test -f $ac_dir/$ac_word; then
++    if test -f $ac_dir/$ac_word$EXE; then
+       ac_cv_path_vi_cv_path_chmod="$ac_dir/$ac_word"
+       break
+     fi
+@@ -1088,10 +1134,10 @@
+   ac_cv_path_vi_cv_path_cp="$vi_cv_path_cp" # Let the user override the test with a path.
+   ;;
+   *)
+-  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
++  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}${PATHSEP}"
+   for ac_dir in $PATH; do
+     test -z "$ac_dir" && ac_dir=.
+-    if test -f $ac_dir/$ac_word; then
++    if test -f $ac_dir/$ac_word$EXE; then
+       ac_cv_path_vi_cv_path_cp="$ac_dir/$ac_word"
+       break
+     fi
+@@ -1119,16 +1165,16 @@
+   ac_cv_path_vi_cv_path_ln="$vi_cv_path_ln" # Let the user override the test with a path.
+   ;;
+   *)
+-  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
++  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}${PATHSEP}"
+   for ac_dir in $PATH; do
+     test -z "$ac_dir" && ac_dir=.
+-    if test -f $ac_dir/$ac_word; then
++    if test -f $ac_dir/$ac_word$EXE; then
+       ac_cv_path_vi_cv_path_ln="$ac_dir/$ac_word"
+       break
+     fi
+   done
+   IFS="$ac_save_ifs"
+-  test -z "$ac_cv_path_vi_cv_path_ln" && ac_cv_path_vi_cv_path_ln="missing_ln"
++  test -z "$ac_cv_path_vi_cv_path_ln" && ac_cv_path_vi_cv_path_ln="$vi_cv_path_cp"
+   ;;
+ esac
+ fi
+@@ -1150,10 +1196,10 @@
+   ac_cv_path_vi_cv_path_mkdir="$vi_cv_path_mkdir" # Let the user override the test with a path.
+   ;;
+   *)
+-  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
++  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}${PATHSEP}"
+   for ac_dir in $PATH; do
+     test -z "$ac_dir" && ac_dir=.
+-    if test -f $ac_dir/$ac_word; then
++    if test -f $ac_dir/$ac_word$EXE; then
+       ac_cv_path_vi_cv_path_mkdir="$ac_dir/$ac_word"
+       break
+     fi
+@@ -1181,10 +1227,10 @@
+   ac_cv_path_vi_cv_path_rm="$vi_cv_path_rm" # Let the user override the test with a path.
+   ;;
+   *)
+-  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
++  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}${PATHSEP}"
+   for ac_dir in $PATH; do
+     test -z "$ac_dir" && ac_dir=.
+-    if test -f $ac_dir/$ac_word; then
++    if test -f $ac_dir/$ac_word$EXE; then
+       ac_cv_path_vi_cv_path_rm="$ac_dir/$ac_word"
+       break
+     fi
+@@ -1212,10 +1258,10 @@
+   ac_cv_path_vi_cv_path_strip="$vi_cv_path_strip" # Let the user override the test with a path.
+   ;;
+   *)
+-  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
++  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}${PATHSEP}"
+   for ac_dir in $PATH; do
+     test -z "$ac_dir" && ac_dir=.
+-    if test -f $ac_dir/$ac_word; then
++    if test -f $ac_dir/$ac_word$EXE; then
+       ac_cv_path_vi_cv_path_strip="$ac_dir/$ac_word"
+       break
+     fi
+@@ -1877,7 +1923,7 @@
+ 
+ EOF
+ eval $ac_link
+-if test -s conftest && (./conftest; exit) 2>/dev/null; then
++if test -s conftest$EXE && (./conftest; exit) 2>/dev/null; then
+   :
+ else
+   ac_cv_header_stdc=no
+@@ -1992,7 +2038,7 @@
+ }
+ EOF
+ eval $ac_link
+-if test -s conftest && (./conftest; exit) 2>/dev/null; then
++if test -s conftest$EXE && (./conftest; exit) 2>/dev/null; then
+   ac_cv_c_bigendian=no
+ else
+   ac_cv_c_bigendian=yes
+@@ -2910,10 +2877,9 @@
+       exit(1);
+   exit(0);
+ }
+-
+ EOF
+ eval $ac_link
+-if test -s conftest && (./conftest; exit) 2>/dev/null; then
++if test -s conftest$EXE && (./conftest; exit) 2>/dev/null; then
+   ac_cv_func_mmap=yes
+ else
+   ac_cv_func_mmap=no
+@@ -3107,7 +3055,7 @@
+ }
+ EOF
+ eval $ac_link
+-if test -s conftest && (./conftest; exit) 2>/dev/null; then
++if test -s conftest$EXE && (./conftest; exit) 2>/dev/null; then
+   ac_cv_func_vfork=yes
+ else
+   ac_cv_func_vfork=no
+@@ -3640,7 +3521,7 @@
+ main(){char buf[20]; exit(sprintf(buf, "XXX") != 3);}
+ EOF
+ eval $ac_link
+-if test -s conftest && (./conftest; exit) 2>/dev/null; then
++if test -s conftest$EXE && (./conftest; exit) 2>/dev/null; then
+   vi_cv_sprintf_count=yes
+ else
+   vi_cv_sprintf_count=no
+@@ -3841,7 +3703,7 @@
+ main(){exit(sizeof(unsigned char) != 1);}
+ EOF
+ eval $ac_link
+-if test -s conftest && (./conftest; exit) 2>/dev/null; then
++if test -s conftest$EXE && (./conftest; exit) 2>/dev/null; then
+   vi_cv_uint8="unsigned char"
+ else
+   vi_cv_uint8=no
+@@ -3891,7 +3750,7 @@
+ main(){exit(sizeof(unsigned short) != 2);}
+ EOF
+ eval $ac_link
+-if test -s conftest && (./conftest; exit) 2>/dev/null; then
++if test -s conftest$EXE && (./conftest; exit) 2>/dev/null; then
+   vi_cv_uint16="unsigned short"
+ else
+   if test "$cross_compiling" = yes; then
+@@ -3903,7 +3762,7 @@
+ main(){exit(sizeof(unsigned int) != 2);}
+ EOF
+ eval $ac_link
+-if test -s conftest && (./conftest; exit) 2>/dev/null; then
++if test -s conftest$EXE && (./conftest; exit) 2>/dev/null; then
+   vi_cv_uint16="unsigned int"
+ else
+   vi_cv_uint16=no
+@@ -3956,7 +3812,7 @@
+ main(){exit(sizeof(short) != 2);}
+ EOF
+ eval $ac_link
+-if test -s conftest && (./conftest; exit) 2>/dev/null; then
++if test -s conftest$EXE && (./conftest; exit) 2>/dev/null; then
+   vi_cv_int16="short"
+ else
+   if test "$cross_compiling" = yes; then
+@@ -3968,7 +3824,7 @@
+ main(){exit(sizeof(int) != 2);}
+ EOF
+ eval $ac_link
+-if test -s conftest && (./conftest; exit) 2>/dev/null; then
++if test -s conftest$EXE && (./conftest; exit) 2>/dev/null; then
+   vi_cv_int16="int"
+ else
+   vi_cv_int16=no
+@@ -4021,7 +3874,7 @@
+ main(){exit(sizeof(unsigned int) != 4);}
+ EOF
+ eval $ac_link
+-if test -s conftest && (./conftest; exit) 2>/dev/null; then
++if test -s conftest$EXE && (./conftest; exit) 2>/dev/null; then
+   vi_cv_uint32="unsigned int"
+ else
+   if test "$cross_compiling" = yes; then
+@@ -4033,7 +3886,7 @@
+ main(){exit(sizeof(unsigned long) != 4);}
+ EOF
+ eval $ac_link
+-if test -s conftest && (./conftest; exit) 2>/dev/null; then
++if test -s conftest$EXE && (./conftest; exit) 2>/dev/null; then
+   vi_cv_uint32="unsigned long"
+ else
+   vi_cv_uint32=no
+@@ -4086,7 +3936,7 @@
+ main(){exit(sizeof(int) != 4);}
+ EOF
+ eval $ac_link
+-if test -s conftest && (./conftest; exit) 2>/dev/null; then
++if test -s conftest$EXE && (./conftest; exit) 2>/dev/null; then
+   vi_cv_int32="int"
+ else
+   if test "$cross_compiling" = yes; then
+@@ -4098,7 +3948,7 @@
+ main(){exit(sizeof(long) != 4);}
+ EOF
+ eval $ac_link
+-if test -s conftest && (./conftest; exit) 2>/dev/null; then
++if test -s conftest$EXE && (./conftest; exit) 2>/dev/null; then
+   vi_cv_int32="long"
+ else
+   vi_cv_int32=no
+@@ -4180,7 +4020,7 @@
+ echo creating $CONFIG_STATUS
+ rm -f $CONFIG_STATUS
+ cat > $CONFIG_STATUS <<EOF
+-#! /bin/sh
++#! ${CONFIG_SHELL-/bin/sh}
+ # Generated automatically by configure.
+ # Run this file to recreate the current configuration.
+ # This directory was configured as follows,
+@@ -4206,18 +4045,15 @@
+   *) echo "\$ac_cs_usage"; exit 1 ;;
+   esac
+ done
+-
+ ac_given_srcdir=$srcdir
+ ac_given_INSTALL="$INSTALL"
+-
+ trap 'rm -fr `echo "Makefile port.h:port.h.in
+-    pathnames.h:pathnames.h.in recover:recover.in config.h" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
++    pathnames.h:pathnames.h.in recover$EXE:recover.in config.h" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
+ EOF
+ cat >> $CONFIG_STATUS <<EOF
+-
+ # Protect against being on the right side of a sed subst in config.status.
+ sed 's/%@/@@/; s/@%/@@/; s/%g\$/@g/; /@g\$/s/[\\\\&%]/\\\\&/g;
+- s/@@/%@/; s/@@/@%/; s/@g\$/%g/' > conftest.subs <<\\CEOF
++ s/@@/%@/; s/@@/@%/; s/@g\$/%g/; s!\\\\\\\\!/!g' > conftest.subs <<\\CEOF
+ $ac_vpsub
+ $extrasub
+ s%@CFLAGS@%$CFLAGS%g
+@@ -4278,13 +4114,24 @@
+ s%@int16_decl@%$int16_decl%g
+ s%@u_int32_decl@%$u_int32_decl%g
+ s%@int32_decl@%$int32_decl%g
++s%@CMD@%$CMD%g
++s%@EXE@%$EXE%g
++s%@PATHSEP@%$PATHSEP%g
++s%@VI_DOSISH@%$vi_cv_DOSish%g
++s%@emxadds@%$emxadds%g
++s%@emxfix@%$emxfix%g
+ 
+ CEOF
+ EOF
++# @@@@ might try to distinguish between all-longname systems and per-FS
++# @@@@ systems later...
+ cat >> $CONFIG_STATUS <<EOF
+ 
++host_os="$host_os"
++CONFIG_SHELL="${CONFIG_SHELL-/bin/sh}"
++
+ CONFIG_FILES=\${CONFIG_FILES-"Makefile port.h:port.h.in
+-    pathnames.h:pathnames.h.in recover:recover.in"}
++    pathnames.h:pathnames.h.in recover$CMD:recover.in"}
+ EOF
+ cat >> $CONFIG_STATUS <<\EOF
+ for ac_file in .. $CONFIG_FILES; do if test "x$ac_file" != x..; then
+@@ -4329,6 +4172,8 @@
+   case "$ac_file" in
+   *Makefile*) ac_comsub="1i\\
+ # $configure_input" ;;
++  *recover*) if test "$host_os" = "os2"; then ac_comsub="1i\\
++extproc ${CONFIG_SHELL-/bin/sh}"; else ac_comsub= ; fi ;;
+   *) ac_comsub= ;;
+   esac
+   sed -e "$ac_comsub
+diff -rwuPB ..\nvi-1.79-dist/build/Makefile.in ./build/Makefile.in
+--- ..\nvi-1.79-dist/build/Makefile.in	Wed Oct 23 08:43:38 1996
++++ ./build/Makefile.in	Sun Jun 29 15:39:30 1997
+@@ -3,7 +3,8 @@
+ srcdir=	@srcdir@/..
+ CC=	@CC@
+ OPTFLAG=@OPTFLAG@
+-CFLAGS=	-c $(OPTFLAG) @CFLAGS@ -I. -I$(srcdir)/include @CPPFLAGS@
++CFLAGS=	-c $(OPTFLAG) @CFLAGS@ -I. -I$(srcdir)/include @CPPFLAGS@ \
++	-DVI_DOSISH=@VI_DOSISH@ @emxadds@
+ LDFLAGS=@LDFLAGS@
+ PERL=	@vi_cv_path_perl@
+ PERLLIB=@vi_cv_perllib@
+@@ -43,13 +44,14 @@
+ 	v_zexit.o vi.o vs_line.o vs_msg.o vs_refresh.o vs_relative.o \
+ 	vs_smap.o vs_split.o
+ 
+-all: nvi @tknvi@
++all: nvi@EXE@ @tknvi@
+ 
+ NVIALL=	$(CLOBJS) $(VIOBJS) @cobjs@ @LIBOBJS@
+-nvi nex: $(NVIALL)
++nvi@EXE@ nex@EXE@: $(NVIALL)
+ 	$(SHRPENV) $(CC) $(LDFLAGS) -o $@ $(NVIALL) @LIBS@
+-	-rm -f nex
+-	ln $@ nex
++	@emxfix@
++	-rm -f nex@EXE@
++	@vi_cv_path_ln@ $@ nex@EXE@
+ 
+ TKALL=	$(TKOBJS) $(VIOBJS) @LIBOBJS@
+ tknvi: $(TKALL)
+@@ -78,17 +80,17 @@
+ 	@echo "Installing vi, ex, view: $(bindir) ..."
+ 	[ -d $(bindir) ] || \
+ 	    ($(mkdir) $(bindir) && $(chmod) $(dmode) $(bindir))
+-	cd $(bindir) && $(rm) -f `echo vi | sed '$(transform)'`
+-	$(cp) nvi $(bindir)/`echo vi | sed '$(transform)'`
+-	cd $(bindir) && [ -f $(strip) ] && \
+-	    $(strip) `echo vi | sed '$(transform)'`
+-	cd $(bindir) && $(chmod) $(emode) `echo vi | sed '$(transform)'`
+-	cd $(bindir) && $(rm) -f `echo ex | sed '$(transform)'`
+-	cd $(bindir) && $(rm) -f `echo view | sed '$(transform)'`
++	cd $(bindir) && $(rm) -f `echo vi@EXE@ | sed '$(transform)'`
++	$(cp) nvi@EXE@ $(bindir)/`echo vi@EXE@ | sed '$(transform)'`
++	cd $(bindir) && [ -f $(strip)@EXE@ ] && \
++	    $(strip) `echo vi@EXE@ | sed '$(transform)'`
++	cd $(bindir) && $(chmod) $(emode) `echo vi@EXE@ | sed '$(transform)'`
++	cd $(bindir) && $(rm) -f `echo ex@EXE@ | sed '$(transform)'`
++	cd $(bindir) && $(rm) -f `echo view@EXE@ | sed '$(transform)'`
+ 	cd $(bindir) && $(ln) \
+-		`echo vi | sed '$(transform)'` `echo ex | sed '$(transform)'`
++		`echo vi@EXE@ | sed '$(transform)'` `echo ex@EXE@ | sed '$(transform)'`
+ 	cd $(bindir) && $(ln) \
+-		`echo vi | sed '$(transform)'` `echo view | sed '$(transform)'`
++		`echo vi@EXE@ | sed '$(transform)'` `echo view@EXE@ | sed '$(transform)'`
+ 	[ -d $(mandir) ] || \
+ 	    ($(mkdir) $(mandir) && $(chmod) $(dmode) $(mandir))
+ 	[ -d $(mandir)/cat1 ] || \
+@@ -119,11 +121,11 @@
+ 
+ cat=	dutch english french german ru_SU.KOI8-R spanish swedish
+ install_common:
+-	[ -f $(chmod) ]
+-	[ -f $(cp) ]
+-	[ -f $(ln) ]
+-	[ -f $(mkdir) ]
+-	[ -f $(rm) ]
++	[ -f $(chmod)@EXE@ ]
++	[ -f $(cp)@EXE@ ]
++	[ -f $(ln)@EXE@ ]
++	[ -f $(mkdir)@EXE@ ]
++	[ -f $(rm)@EXE@ ]
+ 	[ -d $(prefix) ] || \
+ 	    ($(mkdir) $(prefix) && $(chmod) $(dmode) $(prefix))
+ 	[ -d $(exec_prefix) ] || \
+@@ -139,8 +141,8 @@
+ 	    cd $(datadir)/vi/catalog && $(chmod) $(fmode) *)
+ 	@echo "Installing Perl scripts: $(datadir)/vi/perl ..."
+ 	$(mkdir) $(datadir)/vi/perl && $(chmod) $(dmode) $(datadir)/vi/perl
+-	[ -f VI.pm ] && $(cp) VI.pm $(datadir)/vi/perl && \
+-	    cd $(datadir)/vi/perl && $(chmod) $(fmode) VI.pm)
++	-[ -f VI.pm ] && $(cp) VI.pm $(datadir)/vi/perl && \
++	    (cd $(datadir)/vi/perl && $(chmod) $(fmode) VI.pm)
+ 	(cd $(srcdir)/perl_scripts && $(cp) *.pl $(datadir)/vi/perl && \
+ 	    cd $(datadir)/vi/perl && $(chmod) $(fmode) *.pl)
+ 	@echo "Installing Tcl scripts: $(datadir)/vi/tcl ..."
+@@ -148,8 +150,8 @@
+ 	(cd $(srcdir)/tcl_scripts && $(cp) *.tcl $(datadir)/vi/tcl && \
+ 	    cd $(datadir)/vi/tcl && $(chmod) $(fmode) *.tcl)
+ 	@echo "Installing recover script: $(datadir)/vi/recover ..."
+-	($(cp) recover $(datadir)/vi/recover && \
+-	    $(chmod) $(emode) $(datadir)/vi/recover)
++	($(cp) recover@CMD@ $(datadir)/vi/recover@CMD@ && \
++	    $(chmod) $(emode) $(datadir)/vi/recover@CMD@)
+ 
+ uninstall:
+ 	$(rm) -rf $(datadir)/vi
+diff -rwuPB ..\nvi-1.79-dist/build/pathnames.h.in ./build/pathnames.h.in
+--- ..\nvi-1.79-dist/build/pathnames.h.in	Wed Jun 26 10:08:48 1996
++++ ./build/pathnames.h.in	Sun Jun  1 19:23:42 1997
+@@ -29,7 +29,7 @@
+ #endif
+ 
+ #ifndef	_PATH_SYSEXRC
+-#define	_PATH_SYSEXRC	"/etc/vi.exrc"
++#define	_PATH_SYSEXRC	"@prefix@/etc/vi.exrc"
+ #endif
+ 
+ #ifndef	_PATH_TAGS
+diff -rwuPB ..\nvi-1.79-dist/build/recover.in ./build/recover.in
+--- ..\nvi-1.79-dist/build/recover.in	Thu Oct 10 20:41:50 1996
++++ ./build/recover.in	Tue Jun 24 14:56:14 1997
+@@ -10,8 +10,8 @@
+ echo 'Recovering nvi editor sessions.'
+ 
+ # Check editor backup files.
+-vibackup=`echo $RECDIR/vi.*`
+-if [ "$vibackup" != "$RECDIR/vi.*" ]; then
++vibackup=`echo $RECDIR/vi*`
++if [ "$vibackup" != "$RECDIR/vi*" ]; then
+ 	for i in $vibackup; do
+ 		# Only test files that are readable.
+ 		if test ! -r $i; then
+@@ -28,8 +28,8 @@
+ 
+ # It is possible to get incomplete recovery files, if the editor crashes
+ # at the right time.
+-virecovery=`echo $RECDIR/recover.*`
+-if [ "$virecovery" != "$RECDIR/recover.*" ]; then
++virecovery=`echo $RECDIR/re*`
++if [ "$virecovery" != "$RECDIR/re*" ]; then
+ 	for i in $virecovery; do
+ 		# Only test files that are readable.
+ 		if test ! -r $i; then
+diff -rwuPB ..\nvi-1.79-dist/cl/cl.h ./cl/cl.h
+--- ..\nvi-1.79-dist/cl/cl.h	Wed Oct 23 08:29:50 1996
++++ ./cl/cl.h	Fri Jun 27 10:37:50 1997
+@@ -49,6 +49,17 @@
+ #define	CL_SIGWINCH	0x0100	/* SIGWINCH arrived. */
+ #define	CL_STDIN_TTY	0x0200	/* Talking to a terminal. */
+ 	u_int32_t flags;
++#ifdef __EMX__
++#ifdef EMX_MOUSE
++	int mou_pipe;		/* Pipe to mouse event thread. */
++	int mou_thr;		/* Mouse thread ID for shutdown. */
++#endif
++#ifdef EMX_CURSOR
++	short cs1;		/* original cursor start scan line */
++	short cs2;		/* original cursor end scan line */
++	short csa;		/* original cursor attribute */
++#endif
++#endif
+ } CL_PRIVATE;
+ 
+ #define	CLP(sp)		((CL_PRIVATE *)((sp)->gp->cl_private))
+@@ -73,6 +84,20 @@
+ #endif
+ #ifndef FALSE
+ #define	FALSE	0
++#endif
++
++#ifdef __EMX__
++#ifdef EMX_MOUSE
++struct msev
++{
++    unsigned short button;
++#define MEV_B1		0x01
++#define MEV_B2		0x02
++#define MEV_B3		0x04
++    unsigned short x;
++    unsigned short y;
++};
++#endif
+ #endif
+ 
+ #include "cl_extern.h"
+diff -rwuPB ..\nvi-1.79-dist/cl/cl_funcs.c ./cl/cl_funcs.c
+--- ..\nvi-1.79-dist/cl/cl_funcs.c	Wed Oct 23 08:29:50 1996
++++ ./cl/cl_funcs.c	Tue Jul 29 15:59:42 1997
+@@ -31,6 +31,27 @@
+ #include "../vi/vi.h"
+ #include "cl.h"
+ 
++#if VI_DOSISH
++#ifdef __EMX__
++/*
++ * If you are rebuilding vi under something other than OS/2, you will need
++ * to comment this code out.  The check against _emx_env should prevent
++ * systems other than OS/2 from trying to execute the API calls, so it
++ * should be safe to *run* the resulting binary anywhere.
++ */
++#undef ERR
++#define INCL_WINSWITCHLIST
++#define INCL_VIO
++#include <os2.h>
++#include <process.h>
++#include <os2thunk.h>
++#ifdef EMX_TITLEBAR
++extern USHORT _THUNK_FUNCTION (Win16SetTitle)();
++#endif
++#define ERR (0)
++#endif
++#endif
++
+ /*
+  * cl_addstr --
+  *	Add len bytes from the string at the cursor, advancing the cursor.
+@@ -509,6 +530,53 @@
+ 	char *name;
+ 	int on;
+ {
++#ifdef __EMX__
++#ifdef EMX_TITLEBAR
++/*
++ * If you are rebuilding vi under something other than OS/2, you will need
++ * to comment this code out.  The check against _emx_env should prevent
++ * systems other than OS/2 from trying to execute the API calls.
++ */
++/*#undef ERR*/
++	static char oldname[MAXNAMEL];
++	HSWITCH hsw;
++	SWCNTRL swc;
++
++	if (_emx_env & 0x0200)
++	{
++	    if (!sp && !oldname[0])
++		return 0;
++	    if (!on && !oldname[0])
++		return 0;
++	    /* find us --- hopefully we get the right one... */
++	    if ((hsw = WinQuerySwitchHandle(NULLHANDLE, (PID) getpid())))
++	    {
++		WinQuerySwitchEntry(hsw, &swc);
++		if (!oldname[0])
++		{
++		    strncpy(oldname, swc.szSwtitle, MAXNAMEL);
++		    oldname[MAXNAMEL] = '\0';
++		}
++		if (!name)
++		    swc.szSwtitle[0] = '\0';
++		else
++		    strcpy(swc.szSwtitle, "Vi: ");
++		strncat(swc.szSwtitle, (name? name: oldname),
++			MAXNAMEL - strlen(swc.szSwtitle));
++		swc.szSwtitle[MAXNAMEL] = '\0';
++		WinChangeSwitchEntry(hsw, &swc);
++		/* look away... */
++		(_THUNK_PROLOG(8);
++		 _THUNK_FAR16(NULLHANDLE);
++		 _THUNK_FLAT(swc.szSwtitle);
++		 _THUNK_CALL(Win16SetTitle));
++	    }
++	}
++/*#define ERR (0)*/
++#else
++	/* no can do; ignore it */
++#endif
++#else
+ 	GS *gp;
+ 	CL_PRIVATE *clp;
+ 	char *ttype;
+@@ -535,6 +603,7 @@
+ 			(void)printf(XTERM_RENAME, ttype);
+ 			(void)fflush(stdout);
+ 		}
++#endif
+ 	return (0);
+ }
+ 
+@@ -559,6 +628,12 @@
+ 	clp = CLP(sp);
+ 	*allowedp = 1;
+ 
++#if VI_DOSISH
++	/* We'll need a shell. */
++	if (opts_empty(sp, O_SHELL, 0))
++		return (1);
++#endif
++
+ 	/*
+ 	 * The ex implementation of this function isn't needed by screens not
+ 	 * supporting ex commands that require full terminal canonical mode
+@@ -578,10 +653,24 @@
+ 			    TCSASOFT | TCSADRAIN, &clp->orig);
+ 		}
+ 
++#if !VI_DOSISH
+ 		/* Stop the process group. */
+ 		(void)kill(0, SIGTSTP);
+ 
+ 		/* Time passes ... */
++#else
++		{
++		    char *name, *cmd = O_STR(sp, O_SHELL);
++
++		    if ((name = strrchr(cmd, '/')) != NULL)
++			++name;
++		    else if ((name = strrchr(cmd, '\\')) != NULL)
++			++name;
++		    else
++			name = cmd;
++		    (void)spawnl(P_WAIT, cmd, name, NULL);
++		}
++#endif
+ 
+ 		/* Restore terminal settings. */
+ 		if (F_ISSET(clp, CL_STDIN_TTY))
+@@ -612,6 +701,22 @@
+ 	(void)tcgetattr(STDIN_FILENO, &t);
+ #endif
+ 
++#ifdef __EMX__
++#ifdef EMX_CURSOR
++	/* Restore the cursor */
++	if ((_emx_env & 0x0200) && clp->cs1 != -1)
++	{
++	    VIOCURSORINFO ci;
++
++	    ci.yStart = clp->cs1;
++	    ci.cEnd = clp->cs2;
++	    ci.attr = clp->csa;
++	    ci.cx = 1;
++	    VioSetCurType(&ci, (HVIO) 0);
++	}
++#endif
++#endif
++
+ 	/* Restore the cursor keys to normal mode. */
+ 	(void)keypad(stdscr, FALSE);
+ 
+@@ -632,10 +737,24 @@
+ 	 */
+ 	(void)tcsetattr(STDIN_FILENO, TCSADRAIN | TCSASOFT, &clp->orig);
+ 
++#if !VI_DOSISH
+ 	/* Stop the process group. */
+ 	(void)kill(0, SIGTSTP);
+ 
+ 	/* Time passes ... */
++#else
++	{
++	    char *name, *cmd = O_STR(sp, O_SHELL);
++
++	    if ((name = strrchr(cmd, '/')) != NULL)
++		++name;
++	    else if ((name = strrchr(cmd, '\\')) != NULL)
++		++name;
++	    else
++		name = cmd;
++	    (void)spawnl(P_WAIT, cmd, name, NULL);
++	}
++#endif
+ 
+ 	/*
+ 	 * If we received a killer signal, we're done.  Leave everything
+@@ -670,6 +789,38 @@
+ 		return (1);
+ 	if (changed)
+ 		F_SET(CLP(sp), CL_SIGWINCH);
++
++#ifdef __EMX__
++#ifdef EMX_CURSOR
++	/* enable block cursor */
++	if (_emx_env & 0x200)
++	{
++	    VIOCURSORINFO ci;
++	    USHORT rc;
++
++	    if (clp->cs1 == -1)
++	    {
++		rc = VioGetCurType(&ci, (HVIO) 0);
++		if (rc != 0)
++		    fprintf(stderr, "[VGCT%d]\n", rc);
++		clp->cs1 = ci.yStart;
++		clp->cs2 = ci.cEnd;
++		clp->csa = ci.attr;
++	    }
++	    ci.yStart = 0;
++	    /* I'm assuming it's sane... naughty naughty */
++	    if (clp->cs2)
++		ci.cEnd = clp->cs2;
++	    else
++		ci.cEnd = -100;
++	    ci.cx = 1;
++	    ci.attr = 0;
++	    rc = VioSetCurType(&ci, (HVIO) 0);
++	    if (rc != 0)
++		fprintf(stderr, "[VSCT%d]\n", rc);
++	}
++#endif
++#endif
+ 
+ 	return (0);
+ }
+diff -rwuPB ..\nvi-1.79-dist/cl/cl_main.c ./cl/cl_main.c
+--- ..\nvi-1.79-dist/cl/cl_main.c	Mon Oct 14 14:04:52 1996
++++ ./cl/cl_main.c	Sun Jun 29 15:31:44 1997
+@@ -34,6 +34,12 @@
+ #include "cl.h"
+ #include "pathnames.h"
+ 
++#ifdef __EMX__
++#define INCL_DOSPROCESS
++#define INCL_MOU
++#include <os2.h>
++#endif
++
+ GS *__global_list;				/* GLOBAL: List of screens. */
+ sigset_t __sigblockset;				/* GLOBAL: Blocked signals. */
+ 
+@@ -44,6 +50,11 @@
+ static int	   setsig __P((int, struct sigaction *, void (*)(int)));
+ static void	   sig_end __P((GS *));
+ static void	   term_init __P((char *, char *));
++#ifdef __EMX__
++#ifdef EMX_MOUSE
++static void	   mou_proc __P((void *));
++#endif
++#endif
+ 
+ /*
+  * main --
+@@ -65,6 +76,9 @@
+ 	if (reenter++)
+ 		abort();
+ 
++#ifdef __EMX__
++	_wildcard(&argc, &argv);
++#endif
+ 	/* Create and initialize the global structure. */
+ 	__global_list = gp = gs_init(argv[0]);
+ 
+@@ -164,10 +178,15 @@
+ 	 * XXX
+ 	 * Reset the X11 xterm icon/window name.
+ 	 */
++#if VI_DOSISH
++	/* this is invalid in Unix version, note... */
++	(void)cl_rename(0, 0, 0);
++#else
+ 	if (F_ISSET(clp, CL_RENAME)) {
+ 		(void)printf(XTERM_RENAME, ttype);
+ 		(void)fflush(stdout);
+ 	}
++#endif
+ 
+ 	/* If a killer signal arrived, pretend we just got it. */
+ 	if (clp->killersig) {
+@@ -243,9 +262,43 @@
+ 	 * We expect that if we've lost our controlling terminal that the
+ 	 * open() (but not the tcgetattr()) will fail.
+ 	 */
++#ifdef __EMX__
++#ifdef EMX_MOUSE
++	clp->mou_pipe = -1;
++	clp->mou_thr = 0;
++#endif
++#ifdef EMX_CURSOR
++	clp->cs1 = -1;
++#endif
++#endif
+ 	if (F_ISSET(clp, CL_STDIN_TTY)) {
+ 		if (tcgetattr(STDIN_FILENO, &clp->orig) == -1)
+ 			goto tcfail;
++#ifdef __EMX__
++#ifdef EMX_MOUSE
++		/*
++		 * Start a thread to handle mouse input.  We do not display
++		 * a mouse pointer; we just accept mouse events and change
++		 * them into strings of vi commands.
++		 */
++		if (_emx_env & 0x200)
++		{
++		    int pi[2];
++
++		    if (pipe(pi) != -1)
++		    {
++			clp->mou_pipe = pi[0];
++			if ((clp->mou_thr = _beginthread(mou_proc, 0, 24576,
++							(void *) pi[1])) == -1)
++			{
++			    close(pi[0]);
++			    close(pi[1]);
++			    clp->mou_pipe = -1;
++			}
++		    }
++		}
++#endif
++#endif
+ 	} else if ((fd = open(_PATH_TTY, O_RDONLY, 0)) != -1) {
+ 		if (tcgetattr(fd, &clp->orig) == -1) {
+ tcfail:			perr(gp->progname, "tcgetattr");
+@@ -469,3 +522,61 @@
+ 	(void)fprintf(stderr, "%s\n", strerror(errno));
+ 	exit(1);
+ }
++
++#ifdef __EMX__
++#ifdef EMX_MOUSE
++/*
++ * mou_proc --
++ *	Process mouse events from a VDM.
++ *	OS/2 only.
++ */
++static void
++mou_proc(arg)
++    void *arg;
++{
++    int fd = (int) arg;
++    MOUEVENTINFO ev;
++    struct msev mev;
++    USHORT msk, rc;
++    HMOU hm;
++
++    if ((rc = MouOpen((PSZ) 0, &hm)) != 0)
++    {
++	close(fd);
++	_endthread();
++    }
++    msk = MOUSE_BN1_DOWN | MOUSE_BN2_DOWN | MOUSE_BN3_DOWN;
++    if ((rc = MouSetEventMask(&msk, hm)) != 0)
++    {
++	MouClose(hm);
++	close(fd);
++	_endthread();
++    }
++    msk = 0; /* system draws pointer, return position in pels */
++    if ((rc = MouSetDevStatus(&msk, hm)) != 0)
++    {
++	MouClose(hm);
++	close(fd);
++	_endthread();
++    }
++    msk = MOU_WAIT;
++    while ((rc = MouReadEventQue(&ev, &msk, hm)) == 0)
++    {
++	if (!ev.fs)
++	    continue;	/* we only want mouse-down events */
++	mev.button = 0;
++	if (ev.fs & MOUSE_BN1_DOWN)
++	    mev.button |= MEV_B1;
++	if (ev.fs & MOUSE_BN2_DOWN)
++	    mev.button |= MEV_B2;
++	if (ev.fs & MOUSE_BN3_DOWN)
++	    mev.button |= MEV_B3;
++	mev.x = ev.col;
++	mev.y = ev.row;
++	write(fd, &mev, sizeof mev);
++    }
++    MouClose(hm);
++    close(fd);
++}
++#endif
++#endif
+diff -rwuPB ..\nvi-1.79-dist/cl/cl_read.c ./cl/cl_read.c
+--- ..\nvi-1.79-dist/cl/cl_read.c	Tue Sep 24 19:49:50 1996
++++ ./cl/cl_read.c	Fri Jun 27 10:36:34 1997
+@@ -39,6 +39,12 @@
+     u_int32_t, CHAR_T *, size_t, int *, struct timeval *));
+ static int	cl_resize __P((SCR *, size_t, size_t));
+ 
++#ifdef __EMX__
++#ifdef EMX_MOUSE
++static int	mou_read __P((SCR *, char *, int));
++#endif
++#endif
++
+ /*
+  * cl_event --
+  *	Return a single event.
+@@ -221,16 +227,36 @@
+ 	 * It's ugly that we wait on scripting file descriptors here, but it's
+ 	 * the only way to keep from locking out scripting windows.
+ 	 */
++#if defined(__EMX__) && defined(EMX_MOUSE)
++	if ((clp->mou_pipe != -1 && !term_reset) || F_ISSET(gp, G_SCRWIN)) {
++#else
+ 	if (F_ISSET(gp, G_SCRWIN)) {
++#endif
+ loop:		FD_ZERO(&rdfd);
+ 		FD_SET(STDIN_FILENO, &rdfd);
+ 		maxfd = STDIN_FILENO;
++#ifdef __EMX__
++#ifdef EMX_MOUSE
++		if (clp->mou_pipe != -1)
++		{
++		    FD_SET(clp->mou_pipe, &rdfd);
++		    if (clp->mou_pipe > maxfd)
++			maxfd = clp->mou_pipe;
++		}
++#endif
++#endif
+ 		for (tsp = gp->dq.cqh_first;
+ 		    tsp != (void *)&gp->dq; tsp = tsp->q.cqe_next)
+ 			if (F_ISSET(sp, SC_SCRIPT)) {
++#if VI_DOSISH
++				FD_SET(sp->script->sh_master >> 16, &rdfd);
++				if ((sp->script->sh_master >> 16) > maxfd)
++					maxfd = sp->script->sh_master >> 16;
++#else
+ 				FD_SET(sp->script->sh_master, &rdfd);
+ 				if (sp->script->sh_master > maxfd)
+ 					maxfd = sp->script->sh_master;
++#endif
+ 			}
+ 		switch (select(maxfd + 1, &rdfd, NULL, NULL, NULL)) {
+ 		case 0:
+@@ -241,6 +267,25 @@
+ 			break;
+ 		}
+ 		if (!FD_ISSET(STDIN_FILENO, &rdfd)) {
++#ifdef __EMX__
++#ifdef EMX_MOUSE
++			if (FD_ISSET(clp->mou_pipe, &rdfd))
++			{
++			    if ((nr = mou_read(sp, bp, blen)) == -1)
++			    {
++				close(clp->mou_pipe);
++				clp->mou_pipe = -1;
++			    }
++			    else if (nr > 0)
++			    {
++				*nrp = nr;
++				clp->eof_count = 0;
++				return INP_OK;
++			    }
++			}
++			else
++#endif
++#endif
+ 			if (sscr_input(sp))
+ 				return (INP_ERR);
+ 			goto loop;
+@@ -332,3 +377,123 @@
+ 		return (1);
+ 	return (0);
+ }
++
++#ifdef __EMX__
++#ifdef EMX_MOUSE
++/*
++ * mou_read --
++ *	Read a "digested" mouse event and return a command string.
++ *	For now, all mouse buttons are equivalent and we only generate
++ *	movement commands.  Said commands are not optimized.
++ */
++static int mou_read(sp, bp, len)
++    SCR *sp;
++    char *bp;
++    int len;
++{
++    struct msev ev;
++    char xbuf[sizeof ev];
++    int c, f;
++    CL_PRIVATE *clp;
++    GS *gp;
++    SCR *n;
++
++    gp = sp->gp;
++    clp = CLP(sp);
++    c = 0;
++    while (c + (f = read(clp->mou_pipe, xbuf + c, sizeof ev - c)) < sizeof ev)
++    {
++	if (f == -1)
++	    return -1;
++	c += f;
++    }
++    memcpy(&ev, xbuf, sizeof ev);
++    if (!F_SET(sp, SC_VI)) /* mouse actions only in vi */
++	return 0;
++    /*
++     * This gets fairly disgusting.  First, we have to escape out of any
++     * insert etc. mode.  Then we have to check to see if we're switching
++     * screens; then we have to position within the screen.  If this lands
++     * us in a prompt area, we push a colon command instead.  If not, we
++     * must reestablish the previous input mode.  And if we run out of space
++     * doing any of this, we beep and return 0.
++     *
++     * !!!
++     * No attempt is made to deal with mapped keys; we're called at too low
++     * a level.  Likewise, invoking this when a motion is expected to complete
++     * a command will fail.  Fixing this would pretty much require a new,
++     * magic "go directly to specified screen R/C" command and, again, we are
++     * at too low a level to pull it off.
++     */
++    c = 0;
++    if (sp->showmode != SM_COMMAND)
++    {
++	/* escape to command mode */
++	*bp++ = '\033';
++	len--;
++	c++;
++    }
++    for (n = sp, f = 0; n != sp || !f; n = n->q.cqe_next, f = 1)
++    {
++	if (n->woff <= ev.y && n->woff + n->rows > ev.y)
++	    break;
++	if (!len)
++	    break;
++	*bp++ = '\027';	/* ^W */
++	len--;
++	c++;
++    }
++    if (!len)
++	return 0;
++    if (n->woff + n->rows - 1 == ev.y)
++    {
++	/* enter command mode */
++	*bp = ':';
++	return c + 1;
++    }
++    /* now we have to figure out where in the window we are... */
++    /* getting current screen position is a lost cause, it seems */
++    ev.y -= n->woff - 1;
++    if (len < 1 + (ev.y == 1? 0: ev.y < 10? 1: ev.y < 100? 2: 3))
++	return 0;
++    if (ev.y != 1)
++    {
++	sprintf(bp, "%d", ev.y);
++	while (*bp)
++	{
++	    bp++;
++	    len--;
++	    c++;
++	}
++    }
++    *bp++ = 'H';
++    len--;
++    c++;
++    /*
++     * The columns are really fun, because tabs and non-ASCII throw them off.
++     * And we can't "see" the file to know what to do.  :-(
++     * We just use '0' and/or '|' and hope.
++     */
++    ev.x++;
++    if (len < 1 + (ev.x == 1? 0: ev.x < 10? 1: ev.x < 100? 2: 3))
++	return 0;
++    if (ev.x == 1)
++    {
++	*bp++ = '0';
++	len--;
++	c++;
++    }
++    else
++    {
++	sprintf(bp, "%d|", ev.x);
++	while (*bp)
++	{
++	    bp++;
++	    len--;
++	    c++;
++	}
++    }
++    return c;
++}
++#endif
++#endif
+diff -rwuPB ..\nvi-1.79-dist/cl/cl_screen.c ./cl/cl_screen.c
+--- ..\nvi-1.79-dist/cl/cl_screen.c	Wed Oct 23 08:29:52 1996
++++ ./cl/cl_screen.c	Fri Jun 27 10:32:12 1997
+@@ -29,6 +29,12 @@
+ #include "../common/common.h"
+ #include "cl.h"
+ 
++#ifdef __EMX__
++#define INCL_DOSPROCESS
++#define INCL_VIO
++#include <os2.h>
++#endif
++
+ static int	cl_ex_end __P((GS *));
+ static int	cl_ex_init __P((SCR *));
+ static void	cl_freecap __P((CL_PRIVATE *));
+@@ -96,6 +102,21 @@
+ 		}
+ 		(void)move(RLNO(sp, sp->rows) - 1, 0);
+ 		refresh();
++
++#ifdef __EMX__
++#ifdef EMX_CURSOR
++		if ((_emx_env & 0x0200) && clp->cs1 != -1)
++		{
++			VIOCURSORINFO ci;
++
++			ci.yStart = clp->cs1;
++			ci.cEnd = clp->cs2;
++			ci.attr = clp->csa;
++			ci.cx = 1;
++			VioSetCurType(&ci, (HVIO) 0);
++		}
++#endif
++#endif
+ 	}
+ 
+ 	/* Enter the requested mode. */
+@@ -169,6 +190,30 @@
+ 	 */
+ 	(void)tcsetattr(STDIN_FILENO, TCSADRAIN | TCSASOFT, &clp->orig);
+ 
++#ifdef __EMX__
++#ifdef EMX_MOUSE
++	/* If using a mouse thread (OS/2), end it. */
++	if (clp->mou_pipe != -1)
++	{
++	    close(clp->mou_pipe);
++	    DosKillThread((TID) clp->mou_thr);
++	}
++#endif
++#ifdef EMX_CURSOR
++	/* Restore the cursor */
++	if ((_emx_env & 0x0200) && clp->cs1 != -1)
++	{
++	    VIOCURSORINFO ci;
++
++	    ci.yStart = clp->cs1;
++	    ci.cEnd = clp->cs2;
++	    ci.attr = clp->csa;
++	    ci.cx = 1;
++	    VioSetCurType(&ci, (HVIO) 0);
++	}
++#endif
++#endif
++
+ 	F_CLR(clp, CL_SCR_EX_INIT | CL_SCR_VI_INIT);
+ 	return (rval);
+ }
+@@ -291,6 +336,7 @@
+ 	 */
+ 	clp->ti_te = TI_SENT;
+ 
++#if !VI_DOSISH
+ 	/*
+ 	 * XXX
+ 	 * Historic implementations of curses handled SIGTSTP signals
+@@ -308,6 +354,7 @@
+ 	 * we're doing The Right Thing.
+ 	 */
+ 	(void)signal(SIGTSTP, SIG_DFL);
++#endif
+ 
+ 	/*
+ 	 * If flow control was on, turn it back on.  Turn signals on.  ISIG
+@@ -372,6 +419,39 @@
+ err:		(void)cl_vi_end(sp->gp);
+ 		return (1);
+ 	}
++
++#ifdef __EMX__
++#ifdef EMX_CURSOR
++	/* enable block cursor */
++	if (_emx_env & 0x200)
++	{
++	    VIOCURSORINFO ci;
++	    USHORT rc;
++
++	    if (clp->cs1 == -1)
++	    {
++		rc = VioGetCurType(&ci, (HVIO) 0);
++		if (rc != 0)
++		    fprintf(stderr, "[VGCT%d]\n", rc);
++		clp->cs1 = ci.yStart;
++		clp->cs2 = ci.cEnd;
++		clp->csa = ci.attr;
++	    }
++	    ci.yStart = 0;
++	    /* I'm assuming it's sane... naughty naughty */
++	    if (clp->cs2)
++		ci.cEnd = clp->cs2;
++	    else
++		ci.cEnd = -100;
++	    ci.cx = 1;
++	    ci.attr = 0;
++	    rc = VioSetCurType(&ci, (HVIO) 0);
++	    if (rc != 0)
++		fprintf(stderr, "[VSCT%d]\n", rc);
++	}
++#endif
++#endif
++
+ 	return (0);
+ }
+ 
+diff -rwuPB ..\nvi-1.79-dist/cl/cl_term.c ./cl/cl_term.c
+--- ..\nvi-1.79-dist/cl/cl_term.c	Sun Sep 15 14:56:26 1996
++++ ./cl/cl_term.c	Sun Jun 29 14:56:56 1997
+@@ -63,9 +63,35 @@
+ 	{"kcuu1",	"k",	"cursor up"},
+ 	{NULL},
+ };
++#ifdef EMX_KEYS
++static const char *c_pclist[] = {
++	"L",
++	"S",
++	"P",
++	"",
++	"",
++	"O",
++	"G",
++	"R",
++	"",
++	"K",
++	"Q",
++	"I",
++	"",
++	"",
++	"M",
++	"H",
++	0,
++};
++#endif
+ static TKLIST const m1_tklist[] = {	/* Input mappings (lookup). */
+ 	{NULL},
+ };
++#ifdef EMX_KEYS
++static const char *m1_pclist[] = {
++	0,
++};
++#endif
+ static TKLIST const m2_tklist[] = {	/* Input mappings (set or delete). */
+ 	{"kcud1",  "\033ja",	"cursor down"},			/* ^[ja */
+ 	{"kcub1",  "\033ha",	"cursor left"},			/* ^[ha */
+@@ -73,6 +99,15 @@
+ 	{"kcuf1",  "\033la",	"cursor right"},		/* ^[la */
+ 	{NULL},
+ };
++#ifdef EMX_KEYS
++static const char *m2_pclist[] = {
++	"P",
++	"K",
++	"H",
++	"M",
++	0,
++};
++#endif
+ 
+ /*
+  * cl_term_init --
+@@ -89,6 +124,65 @@
+ 	TKLIST const *tkp;
+ 	char *t;
+ 
++#ifdef EMX_KEYS
++	char b[2];
++	int k;
++
++	/*
++	 * Default mappings; since PC keyboards return \0 as the first
++	 * character of an extended key, these can't live in termcap until
++	 * the termcap folks discover a clue and lose the C-string mentality.
++	 */
++	b[0] = 0;
++	for (k = 0; c_tklist[k].name; k++)
++	{
++	    if (c_pclist[k][0] != '\0')
++	    {
++		b[1] = c_pclist[k][0];
++		if (seq_set(sp, c_tklist[k].name, strlen(c_tklist[k].name),
++			    b, 2, c_tklist[k].output,
++			    strlen(c_tklist[k].output), SEQ_COMMAND,
++			    SEQ_NOOVERWRITE | SEQ_SCREEN))
++		    break;
++	    }
++	}
++	for (k = 0; m1_tklist[k].name; k++)
++	{
++	    if (m1_pclist[k][0] != '\0')
++	    {
++		b[1] = m1_pclist[k][0];
++		for (kp = keylist;; ++kp)
++			if (kp->value == tkp->value)
++				break;
++		if (kp == NULL)
++			continue;
++		if (seq_set(sp, m1_tklist[k].name, strlen(m1_tklist[k].name),
++			    b, 2, &kp->ch, 1, SEQ_INPUT,
++			    SEQ_NOOVERWRITE | SEQ_SCREEN))
++		    break;
++	    }
++	}
++	for (k = 0; m2_tklist[k].name; k++)
++	{
++	    if (m2_pclist[k][0] != '\0')
++	    {
++		b[1] = m2_pclist[k][0];
++		if (m2_tklist[k].output == NULL) {
++			if (seq_set(sp, m2_tklist[k].name,
++			    strlen(m2_tklist[k].name),
++			    b, 2, NULL, 0,
++			    SEQ_INPUT, SEQ_NOOVERWRITE | SEQ_SCREEN))
++				break;
++		} else
++			if (seq_set(sp, m2_tklist[k].name,
++			    strlen(m2_tklist[k].name),
++			    b, 2, m2_tklist[k].output,
++			    strlen(m2_tklist[k].output),
++			    SEQ_INPUT, SEQ_NOOVERWRITE | SEQ_SCREEN))
++				break;
++	    }
++	}
++#endif
+ 	/* Command mappings. */
+ 	for (tkp = c_tklist; tkp->name != NULL; ++tkp) {
+ 		if ((t = tigetstr(tkp->ts)) == NULL || t == (char *)-1)
+@@ -205,6 +299,9 @@
+ {
+ 	size_t nlen;
+ 	char *p, keyname[64];
++#ifdef EMX_KEYS
++	size_t klen;
++#endif
+ 
+ 	(void)snprintf(keyname, sizeof(keyname), "kf%d", atoi(from + 1));
+ 	if ((p = tigetstr(keyname)) == NULL ||
+@@ -215,10 +312,19 @@
+ 		return (1);
+ 	}
+ 
++#ifdef EMX_KEYS
++	klen = strlen(p);
++	if (p[0] == '\200')
++		p[0] = '\0';
++#endif
+ 	nlen = snprintf(keyname,
+ 	    sizeof(keyname), "function key %d", atoi(from + 1));
+ 	return (seq_set(sp, keyname, nlen,
++#ifdef EMX_KEYS
++	    p, klen, to, tlen, stype, SEQ_NOOVERWRITE | SEQ_SCREEN));
++#else
+ 	    p, strlen(p), to, tlen, stype, SEQ_NOOVERWRITE | SEQ_SCREEN));
++#endif
+ }
+ 
+ /*
+@@ -287,6 +393,7 @@
+ 	struct stat sb;
+ 	char *tty;
+ 
++#ifndef VI_DOSISH
+ 	/* Find the tty, get the current permissions. */
+ 	if ((tty = ttyname(STDERR_FILENO)) == NULL) {
+ 		if (sp != NULL)
+@@ -318,6 +425,7 @@
+ 				    "045|messages not turned off: %s", tty);
+ 			return (1);
+ 		}
++#endif
+ 	return (0);
+ }
+ 
+diff -rwuPB ..\nvi-1.79-dist/common/exf.c ./common/exf.c
+--- ..\nvi-1.79-dist/common/exf.c	Thu Oct 10 20:33:54 1996
++++ ./common/exf.c	Tue Jun 24 16:16:28 1997
+@@ -187,9 +187,18 @@
+ 		(void)snprintf(tname, sizeof(tname),
+ 		    "%s/vi.XXXXXX", O_STR(sp, O_DIRECTORY));
+ 		if ((fd = mkstemp(tname)) == -1) {
++#if VI_DOSISH
++			/* try a shorter name... */
++			(void)snprintf(tname, sizeof(tname),
++			    "%s/VIXXXXXX", O_STR(sp, O_DIRECTORY));
++			if ((fd = mkstemp(tname)) == -1) {
++#endif
+ 			msgq(sp, M_SYSERR,
+ 			    "237|Unable to create temporary file");
+ 			goto err;
++#if VI_DOSISH
++			}
++#endif
+ 		}
+ 		(void)close(fd);
+ 
+@@ -658,7 +667,9 @@
+ 	 *
+ 	 * !!!
+ 	 * Re: FR_DONTDELETE, see the comment above in file_init().
++	 * --- EMX: can't unlink an open file...
+ 	 */
++#ifndef VI_DOSISH
+ 	if (!F_ISSET(frp, FR_DONTDELETE) && frp->tname != NULL) {
+ 		if (unlink(frp->tname))
+ 			msgq_str(sp, M_SYSERR, frp->tname, "240|%s: remove");
+@@ -672,6 +683,7 @@
+ 		}
+ 		sp->frp = NULL;
+ 	}
++#endif
+ 
+ 	/*
+ 	 * Clean up the EXF structure.
+@@ -684,6 +696,23 @@
+ 		return (1);
+ 	}
+ 
++#if VI_DOSISH
++	/* We couldn't do this while it was open (EACCES)... */
++	if (!F_ISSET(frp, FR_DONTDELETE) && frp->tname != NULL) {
++		if (unlink(frp->tname))
++			msgq_str(sp, M_SYSERR, frp->tname, "240|%s: remove");
++		free(frp->tname);
++		frp->tname = NULL;
++		if (F_ISSET(frp, FR_TMPFILE)) {
++			CIRCLEQ_REMOVE(&sp->gp->frefq, frp, q);
++			if (frp->name != NULL)
++				free(frp->name);
++			free(frp);
++		}
++		sp->frp = NULL;
++	}
++#endif
++
+ 	/* COMMITTED TO THE CLOSE.  THERE'S NO GOING BACK... */
+ 
+ 	/* Stop logging. */
+@@ -700,17 +729,26 @@
+ 	 * Unlink backup file first, we can detect that the recovery file
+ 	 * doesn't reference anything when the user tries to recover it.
+ 	 * There's a race, here, obviously, but it's fairly small.
++	 * --- EMX: if the file is open it cannot be unlink()ed; rearrange
+ 	 */
++#if VI_DOSISH
++	if (ep->fcntl_fd != -1)
++		(void)close(ep->fcntl_fd);
++	if (ep->rcv_fd != -1)
++		(void)close(ep->rcv_fd);
++#endif
+ 	if (!F_ISSET(ep, F_RCV_NORM)) {
+ 		if (ep->rcv_path != NULL && unlink(ep->rcv_path))
+ 			msgq_str(sp, M_SYSERR, ep->rcv_path, "242|%s: remove");
+ 		if (ep->rcv_mpath != NULL && unlink(ep->rcv_mpath))
+ 			msgq_str(sp, M_SYSERR, ep->rcv_mpath, "243|%s: remove");
+ 	}
++#ifndef VI_DOSISH
+ 	if (ep->fcntl_fd != -1)
+ 		(void)close(ep->fcntl_fd);
+ 	if (ep->rcv_fd != -1)
+ 		(void)close(ep->rcv_fd);
++#endif
+ 	if (ep->rcv_path != NULL)
+ 		free(ep->rcv_path);
+ 	if (ep->rcv_mpath != NULL)
+@@ -808,7 +846,9 @@
+ 	else {
+ 		if (noname && !LF_ISSET(FS_FORCE | FS_APPEND) &&
+ 		    (F_ISSET(ep, F_DEVSET) &&
++#if !VI_DOSISH
+ 		    (sb.st_dev != ep->mdev || sb.st_ino != ep->minode) ||
++#endif
+ 		    sb.st_mtime != ep->mtime)) {
+ 			msgq_str(sp, M_ERR, name, LF_ISSET(FS_POSSIBLE) ?
+ "250|%s: file modified more recently than this copy; use ! to override" :
+diff -rwuPB ..\nvi-1.79-dist/common/options.c ./common/options.c
+--- ..\nvi-1.79-dist/common/options.c	Mon Oct 14 13:56:28 1996
++++ ./common/options.c	Sun Jun 29 13:40:24 1997
+@@ -327,8 +327,13 @@
+ 	F_SET(&sp->opts[O_SECURE], OPT_GLOBAL);
+ 
+ 	/* Initialize string values. */
++#if VI_DOSISH
++	(void)snprintf(b1, sizeof(b1),
++	    "cdpath=%s", (s = getenv("CDPATH")) == NULL ? ";" : s);
++#else
+ 	(void)snprintf(b1, sizeof(b1),
+ 	    "cdpath=%s", (s = getenv("CDPATH")) == NULL ? ":" : s);
++#endif
+ 	OI(O_CDPATH, b1);
+ 
+ 	/*
+@@ -353,8 +358,23 @@
+ 	(void)snprintf(b1, sizeof(b1), "recdir=%s", _PATH_PRESERVE);
+ 	OI(O_RECDIR, b1);
+ 	OI(O_SECTIONS, "sections=NHSHH HUnhsh");
++#if VI_DOSISH
++	/*
++	 * Poorly-designed EMX hosts use COMSPEC for everything; more modern
++	 * ones allow you to specify a noninteractive shell with known
++	 * semantics and an interactive one that does whatever.  Not even Unix
++	 * gets that one right, although it's mitigated by the guarantee that
++	 * /bin/sh is always there...  (Until it isn't; I dislike hardcoded
++	 * pathnames.)
++	 */
++	s = getenv("OS2_SHELL");
++	if (!s) s = getenv("COMSPEC");
++	if (!s) s = _PATH_BSHELL;
++	(void)snprintf(b1, sizeof(b1), "shell=%s", s);
++#else
+ 	(void)snprintf(b1, sizeof(b1),
+ 	    "shell=%s", (s = getenv("SHELL")) == NULL ? _PATH_BSHELL : s);
++#endif
+ 	OI(O_SHELL, b1);
+ 	OI(O_SHELLMETA, "shellmeta=~{[*?$`'\"\\");
+ 	OI(O_SHIFTWIDTH, "shiftwidth=8");
+diff -rwuPB ..\nvi-1.79-dist/common/recover.c ./common/recover.c
+--- ..\nvi-1.79-dist/common/recover.c	Sun Sep 15 14:57:46 1996
++++ ./common/recover.c	Tue Jun 24 15:42:46 1997
+@@ -150,6 +150,9 @@
+ 			msgq(sp, M_SYSERR, "%s", dp);
+ 			goto err;
+ 		}
++#ifndef S_ISVTX
++#define S_ISVTX 0
++#endif
+ 		(void)chmod(dp, S_IRWXU | S_IRWXG | S_IRWXO | S_ISVTX);
+ 	}
+ 
+@@ -162,8 +165,16 @@
+ 		}
+ 
+ 	(void)snprintf(path, sizeof(path), "%s/vi.XXXXXX", dp);
++#if VI_DOSISH
++	/* Try the long name first, then the short. */
++	if ((fd = rcv_mktemp(sp, path, dp, S_IRUSR | S_IWUSR)) == -1) {
++		(void)snprintf(path, sizeof(path), "%s/VIXXXXXX", dp);
++#endif
+ 	if ((fd = rcv_mktemp(sp, path, dp, S_IRWXU)) == -1)
+ 		goto err;
++#if VI_DOSISH
++	}
++#endif
+ 	(void)close(fd);
+ 
+ 	if ((ep->rcv_path = strdup(path)) == NULL) {
+@@ -299,8 +310,16 @@
+ 			goto err;
+ 		dp = O_STR(sp, O_RECDIR);
+ 		(void)snprintf(buf, sizeof(buf), "%s/vi.XXXXXX", dp);
++#if VI_DOSISH
++		/* Try the long name first, then the short. */
++		if ((fd = rcv_mktemp(sp, buf, dp, S_IRUSR | S_IWUSR)) == -1) {
++			(void)snprintf(buf, sizeof(buf), "%s/VIXXXXXX", dp);
++#endif
+ 		if ((fd = rcv_mktemp(sp, buf, dp, S_IRUSR | S_IWUSR)) == -1)
+ 			goto err;
++#if VI_DOSISH
++		}
++#endif
+ 		sp->gp->scr_busy(sp,
+ 		    "061|Copying file for recovery...", BUSY_ON);
+ 		if (rcv_copy(sp, fd, ep->rcv_path) ||
+@@ -363,8 +382,16 @@
+ 		return (1);
+ 	dp = O_STR(sp, O_RECDIR);
+ 	(void)snprintf(mpath, sizeof(mpath), "%s/recover.XXXXXX", dp);
++#if VI_DOSISH
++	/* Again, try the long one first. */
++	if ((fd = rcv_mktemp(sp, mpath, dp, S_IRUSR | S_IWUSR)) == -1) {
++		(void)snprintf(mpath, sizeof(mpath), "%s/REXXXXXX", dp);
++#endif
+ 	if ((fd = rcv_mktemp(sp, mpath, dp, S_IRUSR | S_IWUSR)) == -1)
+ 		return (1);
++#if VI_DOSISH
++	}
++#endif
+ 
+ 	/*
+ 	 * XXX
+@@ -509,7 +536,11 @@
+ 
+ 	/* Read the directory. */
+ 	for (found = 0; (dp = readdir(dirp)) != NULL;) {
++#if VI_DOSISH
++		if (strnicmp(dp->d_name, "RE", 2))
++#else
+ 		if (strncmp(dp->d_name, "recover.", 8))
++#endif
+ 			continue;
+ 
+ 		/*
+@@ -617,7 +648,11 @@
+ 	rec_mtime = 0;
+ 	recp = pathp = NULL;
+ 	for (found = requested = 0; (dp = readdir(dirp)) != NULL;) {
++#if VI_DOSISH
++		if (strnicmp(dp->d_name, "RE", 2))
++#else
+ 		if (strncmp(dp->d_name, "recover.", 8))
++#endif
+ 			continue;
+ 		(void)snprintf(recpath,
+ 		    sizeof(recpath), "%s/%s", rp, dp->d_name);
+@@ -815,7 +850,11 @@
+ 		return (NULL);
+ 	if ((p = strchr(buf, '\n')) == NULL)
+ 		return (NULL);
++#ifdef O_BINARY
++	(void)lseek(fd, (off_t)((p - buf) + 2), SEEK_SET);
++#else
+ 	(void)lseek(fd, (off_t)((p - buf) + 1), SEEK_SET);
++#endif
+ 	return (buf);
+ }
+ 
+@@ -860,7 +899,19 @@
+ 	struct stat sb;
+ 	char buf[MAXPATHLEN * 2 + 20];
+ 
++#if VI_DOSISH
++	/* Different filename semantics.  (And yes, OS/2 has BSD sendmail.) */
++	/* @@@@ should accept UNC filenames, although I don't know if // is valid */
++	if (_PATH_SENDMAIL[1] != ':' || _PATH_SENDMAIL[2] != '/' ||
++ 	    /*
++      	     * @@@@ use EXE suffix from "configure" script
++	     * @@@@ should also check CMD suffix...
++	     * @@@@ also handle .COM?
++	     */
++	    (sprintf(buf, "%s.exe", _PATH_SENDMAIL), stat(buf, &sb)))
++#else
+ 	if (_PATH_SENDMAIL[0] != '/' || stat(_PATH_SENDMAIL, &sb))
++#endif
+ 		msgq_str(sp, M_SYSERR,
+ 		    _PATH_SENDMAIL, "071|not sending email: %s");
+ 	else {
+@@ -870,9 +921,15 @@
+ 		 * sendmail, the -t flag causes sendmail to read the message
+ 		 * for the recipients instead of specifying them some other
+ 		 * way.
++		 * @@@@ OS/2 sendmail is disgustingly verbose.
++		 * @@@@ Default config tries to deliver to Umail...
+ 		 */
+ 		(void)snprintf(buf, sizeof(buf),
+ 		    "%s -t < %s", _PATH_SENDMAIL, fname);
++#if VI_DOSISH
++		(void)strcat(buf, ">NUL");
++		/* @@@@ OS/2 allows 2> syntax, and sendmail is noisy here */
++#endif
+ 		(void)system(buf);
+ 	}
+ }
+diff -rwuPB ..\nvi-1.79-dist/curses/tstp.c ./curses/tstp.c
+--- ..\nvi-1.79-dist/curses/tstp.c	Wed May  4 08:25:30 1994
++++ ./curses/tstp.c	Sun Jun  1 11:21:30 1997
+@@ -42,6 +42,8 @@
+ 
+ #include "curses.h"
+ 
++#ifdef SIGTSTP
++
+ /*
+  * stop_signal_handler --
+  *	Handle stop signals.
+@@ -122,3 +124,19 @@
+ {
+ 	(void)signal(SIGTSTP, otstpfn);
+ }
++
++#else
++
++void
++__set_stophandler()
++{
++    ;
++}
++
++void
++__restore_stophandler()
++{
++    ;
++}
++
++#endif
+diff -rwuPB ..\nvi-1.79-dist/curses/tty.c ./curses/tty.c
+--- ..\nvi-1.79-dist/curses/tty.c	Tue Jan 10 19:36:30 1995
++++ ./curses/tty.c	Sun Jun  1 11:22:14 1997
+@@ -66,6 +66,10 @@
+ #endif
+ #endif
+ 
++#ifndef ONLCR
++#define ONLCR 0
++#endif
++
+ /*
+  * gettmode --
+  *	Do terminal type initialization.
+diff -rwuPB ..\nvi-1.79-dist/db/btree/bt_open.c ./db/btree/bt_open.c
+--- ..\nvi-1.79-dist/db/btree/bt_open.c	Wed May 15 16:27:34 1996
++++ ./db/btree/bt_open.c	Sun Jun 29 15:51:38 1997
+@@ -201,7 +201,10 @@
+ 			goto einval;
+ 		}
+ 		
+-		if ((t->bt_fd = open(fname, flags, mode)) < 0)
++#ifndef O_BINARY
++#define O_BINARY 0
++#endif
++		if ((t->bt_fd = open(fname, flags | O_BINARY, mode)) < 0)
+ 			goto err;
+ 
+ 	} else {
+@@ -387,6 +390,32 @@
+ 	return (RET_SUCCESS);
+ }
+ 
++#ifdef VI_DOSISH
++struct zaplist
++{
++    char *path;
++    int fd;
++    struct zaplist *next;
++};
++static struct zaplist *zaplist;
++
++static void
++bt_zapper()
++{
++    struct zaplist *zp;
++
++    while (zaplist)
++    {
++	zp = zaplist->next;
++	(void) close(zaplist->fd);
++	(void) unlink(zaplist->path);
++	free(zaplist->path);
++	free(zaplist);
++	zaplist = zp;
++    }
++}
++#endif
++
+ static int
+ tmp()
+ {
+@@ -395,7 +424,12 @@
+ 	char *envtmp;
+ 	char path[MAXPATHLEN];
+ 
++#if VI_DOSISH
++	envtmp = getenv("TEMP");
++	if (!envtmp) envtmp = getenv("TMP");
++#else
+ 	envtmp = getenv("TMPDIR");
++#endif
+ 	(void)snprintf(path,
+ 	    sizeof(path), "%s/bt.XXXXXX", envtmp ? envtmp : "/tmp");
+ 
+@@ -403,6 +437,36 @@
+ 	(void)sigprocmask(SIG_BLOCK, &set, &oset);
+ 	if ((fd = mkstemp(path)) != -1)
+ 		(void)unlink(path);
++#if VI_DOSISH
++	else {
++		/* try with a shorter name */
++	 	(void)snprintf(path,
++		    sizeof(path), "%s/btXXXXXX", envtmp ? envtmp : "/tmp");
++		if ((fd = mkstemp(path)) != -1)
++			(void)unlink(path);
++	}
++
++	/*
++	 * the backing file sticks around because you can't unlink
++	 * an open file.  use an atexit() function and a file list.
++	 */
++	{
++	    struct zaplist *zp;
++
++	    if (fd != -1 && (zp = malloc(sizeof *zp)))
++	    {
++		if (!zaplist)
++		    atexit(bt_zapper);
++		zp->path = strdup(path);
++		zp->fd = fd;
++		zp->next = zaplist;
++		zaplist = zp;
++	    }
++	}
++#endif
++#ifdef O_BINARY
++	if (fd != -1) setmode(fd, O_BINARY);
++#endif
+ 	(void)sigprocmask(SIG_SETMASK, &oset, NULL);
+ 	return(fd);
+ }
+diff -rwuPB ..\nvi-1.79-dist/db/recno/rec_open.c ./db/recno/rec_open.c
+--- ..\nvi-1.79-dist/db/recno/rec_open.c	Fri Nov 18 15:31:44 1994
++++ ./db/recno/rec_open.c	Sun Jun  1 14:09:56 1997
+@@ -68,7 +68,10 @@
+ 	int rfd, sverrno;
+ 
+ 	/* Open the user's file -- if this fails, we're done. */
+-	if (fname != NULL && (rfd = open(fname, flags, mode)) < 0)
++#ifndef O_BINARY
++#define O_BINARY 0
++#endif
++	if (fname != NULL && (rfd = open(fname, flags|((dflags&R_FIXEDLEN)?O_BINARY:0), mode)) < 0)
+ 		return (NULL);
+ 
+ 	/* Create a btree in memory (backed by disk). */
+diff -rwuPB ..\nvi-1.79-dist/ex/ex_cd.c ./ex/ex_cd.c
+--- ..\nvi-1.79-dist/ex/ex_cd.c	Mon Aug 12 19:24:00 1996
++++ ./ex/ex_cd.c	Tue Jun 24 13:06:30 1997
+@@ -50,8 +50,19 @@
+ 	 * been modified, unless its name begins with a leading '/' or the
+ 	 * force flag is set.
+ 	 */
++#if VI_DOSISH
++	/*
++	 * ...which is an absolute B*TCH when a rooted path has either a drive
++	 * letter or UNC, and you can use either / or \ as path separator....
++	 * (Late note:  emx beat me to it!)
++	 */
++	if (F_ISSET(sp->ep, F_MODIFIED) &&
++	    !FL_ISSET(cmdp->iflags, E_C_FORCE) &&
++	    !_fnisabs(sp->frp->name)) {
++#else
+ 	if (F_ISSET(sp->ep, F_MODIFIED) &&
+ 	    !FL_ISSET(cmdp->iflags, E_C_FORCE) && sp->frp->name[0] != '/') {
++#endif
+ 		msgq(sp, M_ERR,
+     "120|File modified since last complete write; write or use ! to override");
+ 		return (1);
+@@ -82,7 +93,11 @@
+ 	 * a message, vi didn't historically, and it should be obvious to the
+ 	 * user where they are.
+ 	 */
++#ifdef __EMX__
++	if (!_chdir2(dir))
++#else
+ 	if (!chdir(dir))
++#endif
+ 		return (0);
+ 
+ 	/*
+@@ -98,7 +113,11 @@
+ 
+ 	/* Try the O_CDPATH option values. */
+ 	for (p = t = O_STR(sp, O_CDPATH);; ++p)
++#if VI_DOSISH
++		if (*p == '\0' || *p == ';') {
++#else
+ 		if (*p == '\0' || *p == ':') {
++#endif
+ 			/*
+ 			 * Empty strings specify ".".  The only way to get an
+ 			 * empty string is a leading colon, colons in a row,
+@@ -113,8 +132,13 @@
+ 				(void)snprintf(buf,
+ 				    sizeof(buf), "%s/%s", t, dir);
+ 				*p = savech;
++#ifdef __EMX__
++				if (!_chdir2(buf)) {
++					if (_getcwd2(buf, sizeof(buf)) != NULL)
++#else
+ 				if (!chdir(buf)) {
+ 					if (getcwd(buf, sizeof(buf)) != NULL)
++#endif
+ 		msgq_str(sp, M_INFO, buf, "122|New current directory: %s");
+ 					return (0);
+ 				}
+diff -rwuPB ..\nvi-1.79-dist/ex/ex_filter.c ./ex/ex_filter.c
+--- ..\nvi-1.79-dist/ex/ex_filter.c	Wed Oct 23 08:31:24 1996
++++ ./ex/ex_filter.c	Tue Jun 24 13:07:02 1997
+@@ -51,6 +51,9 @@
+ 	recno_t nread;
+ 	int input[2], output[2], rval;
+ 	char *name;
++#if VI_DOSISH
++	char *comspec;
++#endif
+ 
+ 	rval = 0;
+ 
+@@ -60,8 +63,13 @@
+ 		rp->lno = 1;
+ 
+ 	/* We're going to need a shell. */
++#if VI_DOSISH
++	if (!(comspec = getenv("COMSPEC")))
++		return (1);
++#else
+ 	if (opts_empty(sp, O_SHELL, 0))
+ 		return (1);
++#endif
+ 
+ 	/*
+ 	 * There are three different processes running through this code.
+@@ -136,12 +144,36 @@
+ 		(void)close(output[0]);
+ 		(void)close(output[1]);
+ 
++#if VI_DOSISH
++		/*
++		 * This is expensive:  we have vi, %COMSPEC%, and the
++		 * user pipeline hanging around.  Fie on whoever decided
++		 * P_OVERLAY aka exec() wasn't needed (the "whoever" is
++		 * Microsoft, naturally; P_OVERLAY has been defined but not
++		 * implemented since at least MS-DOS 3).
++		 *
++		 * On the other hand, IBM should have had the intelligence
++		 * to implement it....
++		 *
++		 * With current versions of EMX, we only get here on OS/2; the
++		 * pipe() calls fail elsewhere.  I presume 95/NT can simulate
++		 * real operating systems, but EMX doesn't so presume.
++		 */
++		if ((name = strrchr(comspec, '/')) != NULL)
++			++name;
++		else if ((name = strrchr(comspec, '\\')) != NULL)
++			++name;
++		else
++			name = comspec;
++		execl(comspec, name, "/C", cmd, NULL);
++#else
+ 		if ((name = strrchr(O_STR(sp, O_SHELL), '/')) == NULL)
+ 			name = O_STR(sp, O_SHELL);
+ 		else
+ 			++name;
+ 
+ 		execl(O_STR(sp, O_SHELL), name, "-c", cmd, NULL);
++#endif
+ 		msgq_str(sp, M_SYSERR, O_STR(sp, O_SHELL), "execl: %s");
+ 		_exit (127);
+ 		/* NOTREACHED */
+diff -rwuPB ..\nvi-1.79-dist/ex/ex_init.c ./ex/ex_init.c
+--- ..\nvi-1.79-dist/ex/ex_init.c	Mon Aug 12 19:24:00 1996
++++ ./ex/ex_init.c	Fri Jun 20 20:39:22 1997
+@@ -351,15 +351,23 @@
+ 	char *path;
+ 	int rootown, rootid;
+ {
++#ifndef VI_DOSISH
+ 	enum { ROOTOWN, OWN, WRITER } etype;
+ 	uid_t euid;
+ 	int nf1, nf2;
+ 	char *a, *b, buf[MAXPATHLEN];
++#endif
+ 
+ 	/* Check for the file's existence. */
+ 	if (stat(path, sbp))
+ 		return (NOEXIST);
+ 
++	/*
++	 * NT and OS/2 grok permissions, but not portably.  And it's a lost
++	 * cause on PCs anyway (especially when NT raises insecure to a whole
++	 * new level that makes 7th Edition UNIX look like a vault!).
++	 */
++#ifndef VI_DOSISH
+ 	/* Check ownership permissions. */
+ 	euid = geteuid();
+ 	if (!(rootown && sbp->st_uid == 0) &&
+@@ -373,8 +381,10 @@
+ 		etype = WRITER;
+ 		goto denied;
+ 	}
++#endif
+ 	return (RCOK);
+ 
++#ifndef VI_DOSISH
+ denied:	a = msg_print(sp, path, &nf1);
+ 	if (strchr(path, '/') == NULL && getcwd(buf, sizeof(buf)) != NULL) {
+ 		b = msg_print(sp, buf, &nf2);
+@@ -414,4 +424,5 @@
+ 	if (nf1)
+ 		FREE_SPACE(sp, a, 0);
+ 	return (NOPERM);
++#endif
+ }
+diff -rwuPB ..\nvi-1.79-dist/ex/ex_script.c ./ex/ex_script.c
+--- ..\nvi-1.79-dist/ex/ex_script.c	Tue Sep 24 19:51:12 1996
++++ ./ex/ex_script.c	Sun Jun 29 14:42:06 1997
+@@ -92,6 +92,10 @@
+ {
+ 	SCRIPT *sc;
+ 	char *sh, *sh_path;
++#if VI_DOSISH
++	int ip[2], op[2];
++	int f;
++#endif
+ 
+ 	/* We're going to need a shell. */
+ 	if (opts_empty(sp, O_SHELL, 0))
+@@ -119,6 +123,29 @@
+ 	sc->sh_term.c_oflag &= ~OPOST;
+ 	sc->sh_term.c_cflag &= ~(ECHO|ECHOE|ECHONL|ECHOK);
+ 
++#if VI_DOSISH
++	/*
++	 * It's necessary to use ordinary pipes, not named pipes or other
++	 * mechanisms, to do this.  To me, this seems wrong, but CMD.EXE
++	 * at least refuses to run over a named pipe.  :-(
++	 *
++	 * The changes needed for separate pipes are moderately ugly....
++	 */
++	if (pipe(ip) == -1)
++	{
++	    msgq(sp, M_SYSERR, "pipe:i");
++	    goto err;
++	}
++	if (pipe(op) == -1)
++	{
++	    msgq(sp, M_SYSERR, "pipe:o");
++	    goto err;
++	}
++	if (fcntl(op[0], F_SETFL, fcntl(op[0], F_GETFL) | O_NONBLOCK) == -1)
++	    msgq(sp, M_SYSERR, "fcntl");
++	sc->sh_master = (op[0] << 16) | ip[1];
++	sc->sh_slave = (ip[0] << 16) | op[1];
++#else
+ #ifdef TIOCGWINSZ
+ 	if (ioctl(STDIN_FILENO, TIOCGWINSZ, &sc->sh_win) == -1) {
+ 		msgq(sp, M_SYSERR, "tcgetattr");
+@@ -137,6 +164,7 @@
+ 		goto err;
+ 	}
+ #endif
++#endif
+ 
+ 	/*
+ 	 * __TK__ huh?
+@@ -147,9 +175,23 @@
+ 	case -1:			/* Error. */
+ 		msgq(sp, M_SYSERR, "fork");
+ err:		if (sc->sh_master != -1)
++#if VI_DOSISH
++		{
++			(void)close(sc->sh_master >> 16);
++			(void)close(sc->sh_master & 0xFFFF);
++		}
++#else
+ 			(void)close(sc->sh_master);
++#endif
+ 		if (sc->sh_slave != -1)
++#if VI_DOSISH
++		{
++			(void)close(sc->sh_slave >> 16);
++			(void)close(sc->sh_slave & 0xFFFF);
++		}
++#else
+ 			(void)close(sc->sh_slave);
++#endif
+ 		return (1);
+ 	case 0:				/* Utility. */
+ 		/*
+@@ -160,7 +202,9 @@
+ 		(void)setenv("TERMCAP", "emacs:", 1);
+ 		(void)setenv("EMACS", "t", 1);
+ 
++#ifndef VI_DOSISH
+ 		(void)setsid();
++#endif
+ #ifdef TIOCSCTTY
+ 		/*
+ 		 * 4.4BSD allocates a controlling terminal using the TIOCSCTTY
+@@ -170,19 +214,50 @@
+ 		 */
+ 		(void)ioctl(sc->sh_slave, TIOCSCTTY, 0);
+ #endif
++#if VI_DOSISH
++		(void)close(sc->sh_master >> 16);
++		(void)close(sc->sh_master & 0xFFFF);
++		(void)dup2(sc->sh_slave >> 16, STDIN_FILENO);
++		(void)dup2(sc->sh_slave & 0xFFFF, STDOUT_FILENO);
++		(void)dup2(sc->sh_slave & 0xFFFF, STDERR_FILENO);
++		(void)close(sc->sh_slave >> 16);
++		(void)close(sc->sh_slave & 0xFFFF);
++		/* (This is probably a general vi bug) */
++		/* Close all other fd's */
++		for (f = 0; ; f++)
++		{
++		    if (f != STDIN_FILENO && f != STDOUT_FILENO &&
++			f != STDERR_FILENO)
++		    {
++			if (close(f) == -1)
++			    break;
++		    }
++		}
++#else
+ 		(void)close(sc->sh_master);
+ 		(void)dup2(sc->sh_slave, STDIN_FILENO);
+ 		(void)dup2(sc->sh_slave, STDOUT_FILENO);
+ 		(void)dup2(sc->sh_slave, STDERR_FILENO);
+ 		(void)close(sc->sh_slave);
++#endif
+ 
+ 		/* Assumes that all shells have -i. */
+ 		sh_path = O_STR(sp, O_SHELL);
++#if VI_DOSISH
++		if ((sh = strrchr(sh_path, '/')) != NULL)
++			++sh;
++		else if ((sh = strrchr(sh_path, '\\')) != NULL)
++			++sh;
++		else
++			sh = sh_path;
++		execl(sh_path, sh, "/Q", NULL);
++#else
+ 		if ((sh = strrchr(sh_path, '/')) == NULL)
+ 			sh = sh_path;
+ 		else
+ 			++sh;
+ 		execl(sh_path, sh, "-i", NULL);
++#endif
+ 		msgq_str(sp, M_SYSERR, sh_path, "execl: %s");
+ 		_exit(127);
+ 	default:			/* Parent. */
+@@ -223,8 +298,13 @@
+ 	tv.tv_sec = 5;
+ 	tv.tv_usec = 0;
+ 	sc = sp->script;
++#if VI_DOSISH
++	FD_SET(sc->sh_master >> 16, &fdset);
++	switch (select((sc->sh_master >> 16) + 1, &fdset, NULL, NULL, &tv)) {
++#else
+ 	FD_SET(sc->sh_master, &fdset);
+ 	switch (select(sc->sh_master + 1, &fdset, NULL, NULL, &tv)) {
++#endif
+ 	case -1:		/* Error or interrupt. */
+ 		msgq(sp, M_SYSERR, "select");
+ 		goto prompterr;
+@@ -237,7 +317,11 @@
+ 
+ 	/* Read the characters. */
+ more:	len = sizeof(buf) - (endp - buf);
++#if VI_DOSISH
++	switch (nr = read(sc->sh_master >> 16, endp, len)) {
++#else
+ 	switch (nr = read(sc->sh_master, endp, len)) {
++#endif
+ 	case  0:			/* EOF. */
+ 		msgq(sp, M_ERR, "Error: shell: EOF");
+ 		goto prompterr;
+@@ -269,7 +353,11 @@
+ 	/* Wait up 1/10 of a second to make sure that we got it all. */
+ 	tv.tv_sec = 0;
+ 	tv.tv_usec = 100000;
++#if VI_DOSISH
++	switch (select((sc->sh_master >> 16) + 1, &fdset, NULL, NULL, &tv)) {
++#else
+ 	switch (select(sc->sh_master + 1, &fdset, NULL, NULL, &tv)) {
++#endif
+ 	case -1:		/* Error or interrupt. */
+ 		msgq(sp, M_SYSERR, "select");
+ 		goto prompterr;
+@@ -344,10 +432,18 @@
+ 
+ 	/* Push the line to the shell. */
+ 	sc = sp->script;
++#if VI_DOSISH
++	if ((nw = write(sc->sh_master & 0xFFFF, p, len)) != len)
++#else
+ 	if ((nw = write(sc->sh_master, p, len)) != len)
++#endif
+ 		goto err2;
+ 	rval = 0;
++#if VI_DOSISH
++	if (write(sc->sh_master & 0xFFFF, "\n", 1) != 1) {
++#else
+ 	if (write(sc->sh_master, "\n", 1) != 1) {
++#endif
+ err2:		if (nw == 0)
+ 			errno = EIO;
+ 		msgq(sp, M_SYSERR, "shell");
+@@ -390,9 +486,15 @@
+ 	/* Set up the input mask. */
+ 	for (sp = gp->dq.cqh_first; sp != (void *)&gp->dq; sp = sp->q.cqe_next)
+ 		if (F_ISSET(sp, SC_SCRIPT)) {
++#if VI_DOSISH
++			FD_SET(sp->script->sh_master >> 16, &rdfd);
++			if ((sp->script->sh_master >> 16) > maxfd)
++				maxfd = sp->script->sh_master >> 16;
++#else
+ 			FD_SET(sp->script->sh_master, &rdfd);
+ 			if (sp->script->sh_master > maxfd)
+ 				maxfd = sp->script->sh_master;
++#endif
+ 		}
+ 
+ 	/* Check for input. */
+@@ -409,7 +511,11 @@
+ 	/* Read the input. */
+ 	for (sp = gp->dq.cqh_first; sp != (void *)&gp->dq; sp = sp->q.cqe_next)
+ 		if (F_ISSET(sp, SC_SCRIPT) &&
++#if VI_DOSISH
++		    FD_ISSET((sp->script->sh_master >> 16), &rdfd) && sscr_insert(sp))
++#else
+ 		    FD_ISSET(sp->script->sh_master, &rdfd) && sscr_insert(sp))
++#endif
+ 			return (1);
+ 	goto loop;
+ }
+@@ -443,7 +549,11 @@
+ 	/* Read the characters. */
+ 	rval = 1;
+ 	sc = sp->script;
++#if VI_DOSISH
++more:	switch (nr = read(sc->sh_master >> 16, endp, MINREAD)) {
++#else
+ more:	switch (nr = read(sc->sh_master, endp, MINREAD)) {
++#endif
+ 	case  0:			/* EOF; shell just exited. */
+ 		sscr_end(sp);
+ 		rval = 0;
+@@ -479,8 +589,13 @@
+ 			tv.tv_sec = 0;
+ 			tv.tv_usec = 100000;
+ 			FD_ZERO(&rdfd);
++#if VI_DOSISH
++			FD_SET(sc->sh_master >> 16, &rdfd);
++			if (select((sc->sh_master >> 16) + 1,
++#else
+ 			FD_SET(sc->sh_master, &rdfd);
+ 			if (select(sc->sh_master + 1,
++#endif
+ 			    &rdfd, NULL, NULL, &tv) == 1) {
+ 				memmove(bp, t, len);
+ 				endp = bp + len;
+@@ -590,10 +705,23 @@
+ 	sscr_check(sp);
+ 
+ 	/* Close down the parent's file descriptors. */
++#if VI_DOSISH
++	if (sc->sh_master != -1)
++	{
++	    (void)close(sc->sh_master >> 16);
++	    (void)close(sc->sh_master & 0xFFFF);
++	}
++	if (sc->sh_slave != -1)
++	{
++	    (void)close(sc->sh_slave >> 16);
++	    (void)close(sc->sh_slave & 0xFFFF);
++	}
++#else
+ 	if (sc->sh_master != -1)
+ 	    (void)close(sc->sh_master);
+ 	if (sc->sh_slave != -1)
+ 	    (void)close(sc->sh_slave);
++#endif
+ 
+ 	/* This should have killed the child. */
+ 	(void)proc_wait(sp, (long)sc->sh_pid, "script-shell", 0, 0);
+@@ -740,6 +868,7 @@
+ }
+ 
+ #else /* !HAVE_SYS5_PTY */
++#ifndef VI_DOSISH
+ 
+ static int
+ sscr_pty(amaster, aslave, name, termp, winp)
+@@ -795,4 +924,5 @@
+ 	errno = ENOENT;	/* out of ptys */
+ 	return (-1);
+ }
++#endif /* VI_DOSISH */
+ #endif /* HAVE_SYS5_PTY */
+diff -rwuPB ..\nvi-1.79-dist/ex/ex_shell.c ./ex/ex_shell.c
+--- ..\nvi-1.79-dist/ex/ex_shell.c	Sun Sep 15 16:20:38 1996
++++ ./ex/ex_shell.c	Tue Jun 24 13:11:30 1997
+@@ -28,6 +28,10 @@
+ 
+ #include "../common/common.h"
+ 
++#if VI_DOSISH
++#include <process.h>
++#endif
++
+ static const char *sigmsg __P((int));
+ 
+ /*
+@@ -49,11 +53,15 @@
+ 	if (opts_empty(sp, O_SHELL, 0))
+ 		return (1);
+ 
++#if VI_DOSISH
++	(void)snprintf(buf, sizeof(buf), "%s", O_STR(sp, O_SHELL));
++#else
+ 	/*
+ 	 * XXX
+ 	 * Assumes all shells use -i.
+ 	 */
+ 	(void)snprintf(buf, sizeof(buf), "%s -i", O_STR(sp, O_SHELL));
++#endif
+ 
+ 	/* Restore the window name. */
+ 	(void)sp->gp->scr_rename(sp, NULL, 0);
+@@ -90,13 +98,21 @@
+ {
+ 	GS *gp;
+ 	const char *name;
++#if VI_DOSISH
++	const char *comspec;
++#endif
+ 	pid_t pid;
+ 
+ 	gp = sp->gp;
+ 
+ 	/* We'll need a shell. */
++#if VI_DOSISH
++	if (!(comspec = getenv("COMSPEC")))
++		return (1);
++#else
+ 	if (opts_empty(sp, O_SHELL, 0))
+ 		return (1);
++#endif
+ 
+ 	/* Enter ex mode. */
+ 	if (F_ISSET(sp, SC_VI)) {
+@@ -117,6 +133,26 @@
+ 	}
+ 	(void)ex_fflush(sp);
+ 
++#if VI_DOSISH
++	/*
++	 * "shell" defines the interactive shell; %COMSPEC% is noninteractive
++	 * and not subject to user override.  This behavior is a tightrope
++	 * walk between Unix, MS-whatsit, and OS/2 usage.  (MS uses COMSPEC for
++	 * everything; OS/2 uses COMSPEC noninteractively and OS2_SHELL for
++	 * interactive use, resolving the discrepancy between user shells and
++	 * something programs can rely on behaving consistently.)
++	 *
++	 * We also handle both kinds of slashes, although not all EMX targets
++	 * will tolerate / in COMSPEC.
++	 */
++	if ((name = strrchr(comspec, '/')) != NULL)
++		++name;
++	else if ((name = strrchr(comspec, '\\')) != NULL)
++		++name;
++	else
++		name = comspec;
++	return (spawnl(P_WAIT, comspec, name, "/C", cmd, NULL));
++#else
+ 	switch (pid = vfork()) {
+ 	case -1:			/* Error. */
+ 		msgq(sp, M_SYSERR, "vfork");
+@@ -133,6 +169,7 @@
+ 	default:			/* Parent. */
+ 		return (proc_wait(sp, (long)pid, cmd, 0, 0));
+ 	}
++#endif
+ 	/* NOTREACHED */
+ }
+ 
+diff -rwuPB ..\nvi-1.79-dist/os2/recover.cmd ./os2/recover.cmd
+--- ..\nvi-1.79-dist/os2/recover.cmd	Sun Feb  7 01:28:16 2106
++++ ./os2/recover.cmd	Sun Jun 29 15:49:50 1997
+@@ -0,0 +1,50 @@
++extproc c:/gnu/bin/sh.exe
++#!/bin/sh -
++#
++#	@(#)recover.in	8.8 (Berkeley) 10/10/96
++#
++# Script to recover nvi edit sessions.
++
++RECDIR="C:/tmp/recover.vi"
++SENDMAIL="C:/TCPIP/BIN/sendmail"
++
++echo 'Recovering nvi editor sessions.'
++
++# Check editor backup files.
++vibackup=`echo $RECDIR/vi*`
++if [ "$vibackup" != "$RECDIR/vi*" ]; then
++	for i in $vibackup; do
++		# Only test files that are readable.
++		if test ! -r $i; then
++			continue
++		fi
++
++		# Unmodified nvi editor backup files either have the
++		# execute bit set or are zero length.  Delete them.
++		if test -x $i -o ! -s $i; then
++			rm $i
++		fi
++	done
++fi
++
++# It is possible to get incomplete recovery files, if the editor crashes
++# at the right time.
++virecovery=`echo $RECDIR/re*`
++if [ "$virecovery" != "$RECDIR/re*" ]; then
++	for i in $virecovery; do
++		# Only test files that are readable.
++		if test ! -r $i; then
++			continue
++		fi
++
++		# Delete any recovery files that are zero length, corrupted,
++		# or that have no corresponding backup file.  Else send mail
++		# to the user.
++		recfile=`awk '/^X-vi-recover-path:/{print $2}' < $i`
++		if test -n "$recfile" -a -s "$recfile"; then
++			$SENDMAIL -t < $i
++		else
++			rm $i
++		fi
++	done
++fi
+diff -rwuPB ..\nvi-1.79-dist/os2/settitle.def ./os2/settitle.def
+--- ..\nvi-1.79-dist/os2/settitle.def	Sun Feb  7 01:28:16 2106
++++ ./os2/settitle.def	Tue Jun 24 12:02:10 1997
+@@ -0,0 +1,3 @@
++LIBRARY PMSHAPI
++
++EXPORTS _16_Win16SetTitle @93
+diff -rwuPB ..\nvi-1.79-dist/vi/v_ex.c ./vi/v_ex.c
+--- ..\nvi-1.79-dist/vi/v_ex.c	Sun Sep 15 15:03:02 1996
++++ ./vi/v_ex.c	Thu Jun 26 12:35:06 1997
+@@ -23,6 +23,7 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <unistd.h>
++#include <signal.h>		/* for SIGTSTP check */
+ 
+ #include "../common/common.h"
+ #include "vi.h"

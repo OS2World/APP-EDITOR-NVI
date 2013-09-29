@@ -1,0 +1,106 @@
+nvi for OS/2 (probably works on obsolete PC OSes)
+------------
+
+You need EMX 0.9c to run this (earlier versions untested).  I personally prefer
+true native code, but it'll have to wait.  (If you want to know why, have a
+look at the hacks needed to get the titlebar stuff working....)
+
+Everything seems to work in my relatively limited testing, except for an
+oddity in ":script":  when you start it, you get only the initial banner
+from the shell.  Enter a command on a blank line ("odir/w" <Return> will do)
+and it starts working.  I dunno, I'm just a transplanted Unix hack....  :-)
+Also, it leaves a garbage file in TMPDIR when it's done because libdb thinks
+it can open a file and immediately delete it --- no, it doesn't memorize the
+file name, so we can't catch it on close.  I may rework the included libdb a
+bit to fix this.
+
+vi has been built expecting the following:
+(C:\GNU is where I put EMX-based programs, excluding EMX itself)
+- recover.cmd lives in C:\GNU\SHARE\VI
+- the recovery directory is C:\TMP\RECOVER.VI
+- recover.cmd requires ksh527rt, sh-utils, and awk
+- the global ex/vi configuration file is C:\GNU\ETC\VI.EXRC
+
+You can override the recovery directory by changing recover.cmd and by
+adding a "set recdir=..." to the vi.exrc or environment %EXINIT% or %NEXINIT%.
+You can get rid of the need for ksh, etc. by rewriting recover.cmd in REXX;
+as I worked to maintain compatibility with the Unix sources, I did not do so.
+You can't change the location of recover.cmd or vi.exrc at runtime, although
+you can use %[N]EXINIT% or %HOME%/.[n]exrc instead of vi.exrc.  Of course,
+recover.cmd is fairly useless on a PC anyway and almost certainly is a lost
+cause on non-OS/2 systems.
+
+
+Changes from initial release
+----------------------------
+
+The biggest problem was EMX's restricting file limit.  This one knows how to
+use emxbind to fix that.
+
+There were a few glitches in the OS/2-specific add-ons, in particular suspend
+(translated to a subshell) didn't work quite right.  It now works properly;
+the window title remains "vi.exe", as a reminder that you are shelled out.
+
+
+Notes on building nvi for OS/2
+------------------------------
+
+* You need emx 0.9c development system with emxfix02 or later.
+* You also need most if not all of the GNU utilities for OS/2, plus pdksh or
+  some other shell clone.
+* You also need HPFS to build it.  (The runtime is smart enough to adapt to
+  FAT systems, but the source uses Unix long names.)
+* WARNING!!!!!
+  NFS for OS/2 includes an LN.EXE.  If you (or, more likely, "configure" or
+  "make install") try to run it when portmap and/or nfsctl aren't running,
+  the session will hang and be unkillable.  I strongly suggest renaming it
+  before running configure.
+* You need to set some environment variables before running configure or make:
+  - set CC=gcc
+  - set CONFIG_SHELL=d:/path/to/sh.exe
+  - set MAKE_SHELL=d:/path/to/sh.exe
+  - set EMX_FIX_CMD="emxbind -a \$@ ..."
+    (e.g. to increase the number of file handles; default adds -h60)
+* configure should be run from the os2 directory, as it expects to find the
+  additional library there.
+* You will need to (manually, because there are no portable facilities to
+  add this to the Makefile only for OS/2 and I want this package to continue
+  to build on Unix) run "emximp -o settitle.a settitle.def" from the os2
+  directory.  This creates an import library for the undocumented function to
+  change the titlebar contents.  To build this with EMX on a non-OS/2 system,
+  remove -lsettitle from the generated Makefile and remove the marked sections
+  of cl/cl_funcs.c:  you aren't likely to be able to get away with the OS/2
+  API calls involved in updating the titlebar.
+* I haven't tried to build with --disable-re; --disable-curses produces a
+  binary which fails to update the screen properly, and --disable-db produces
+  one which can't read its database.
+
+You do *not* have apply os2\diffs.os2 to the provided source; they are included
+in case a new version of nvi is released and some adventurous soul wishes to
+try to build it.  Apply it to the new sources with "patch -p0 < os2\diffs.os2"
+after copying the os2 directory to the new tree, then re-configure and re-make.
+(Do a "make clean" before the configure.)
+
+
+Credits
+-------
+
+Thanks to Jeffrey Altman, jaltman@watsun.cc.columbia.edu, for the Win16SetTitle
+API.  Mixed thanks to Eberhard Mattes for EMX --- "mixed" because figuring
+out how to thunk the Win16SetTitle call took a look at the source and a bit of
+experimentation (it would be nice if it were documented that the "_16_" prefix
+is magic!  I couldn't find any mention of it.).  And thanks to Keith Bostic and
+the rest of the BSD crew for nvi, and to Bill Joy for the original vi.
+
+
+The future
+----------
+
+I'm trying to figure out why the perl binding sends gcc off a cliff.  I'm also
+thinking about a REXX binding; this shouldn't trip over the EXE vs. DLL issue
+because it will use RexxStart() and callbacks (communication will be by
+ADDRESS, as with EPM, and will be via ex commands).
+
+The chances of my making this a multiwindow application are about zero, since
+I would have to rewrite it as a PM application --- you can't have multiple
+VIO windows.  "I Don't Think So...."
